@@ -1,0 +1,35 @@
+# Core dependencies
+python-telegram-bot[all]==20.7
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+alembic==1.13.1
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# External services
+httpx==0.25.2
+redis[hiredis]==5.0.1
+anthropic==0.7.8
+
+# Scheduling and background tasks
+apscheduler==3.10.4
+
+# Utilities
+python-dotenv==1.0.0
+structlog==23.2.0
+typer==0.9.0
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.23.2
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+black==23.11.0
+isort==5.12.0
+mypy==1.7.1
+pre-commit==3.6.0
+
+# Production
+gunicorn==21.2.0
