@@ -1,35 +1,55 @@
+# Generated from pyproject.toml for compatibility
+# Use 'poetry install' for development
+
 # Core dependencies
-python-telegram-bot[all]==20.7
+python-telegram-bot==20.7
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-sqlalchemy[asyncio]==2.0.23
-asyncpg==0.29.0
-alembic==1.13.1
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# External services
-httpx==0.25.2
-redis[hiredis]==5.0.1
+# Database
+sqlalchemy==2.0.23
+alembic==1.12.1
+asyncpg==0.29.0
+
+# Cache
+redis==5.0.1
+
+# AI/ML
 anthropic==0.7.8
 
-# Scheduling and background tasks
-apscheduler==3.10.4
+# Supabase
+supabase==2.0.2
+
+# Background tasks
+celery==5.3.4
+
+# Logging and monitoring
+structlog==23.2.0
+sentry-sdk[fastapi]==1.38.0
+prometheus-client==0.19.0
+
+# Security
+python-jose[cryptography]==3.3.0
+
+# HTTP client
+httpx==0.25.2
 
 # Utilities
-python-dotenv==1.0.0
-structlog==23.2.0
-typer==0.9.0
+python-multipart==0.0.6
+psutil==5.9.6
+pythonjsonlogger==2.0.7
 
-# Development
-pytest==7.4.3
-pytest-asyncio==0.23.2
-pytest-cov==4.1.0
-pytest-mock==3.12.0
-black==23.11.0
-isort==5.12.0
-mypy==1.7.1
-pre-commit==3.6.0
-
-# Production
-gunicorn==21.2.0
+# Development dependencies (install with pip install -r requirements-dev.txt)
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# pytest-cov==4.1.0
+# black==23.11.0
+# isort==5.12.0
+# flake8==6.1.0
+# mypy==1.7.1
+# pre-commit==3.6.0
+# faker==20.1.0
+# factory-boy==3.3.0
+# aresponses==2.1.6
