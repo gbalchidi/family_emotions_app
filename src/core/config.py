@@ -88,9 +88,15 @@ class TelegramSettings(BaseSettings):
 class AnthropicSettings(BaseSettings):
     """Anthropic Claude API configuration."""
     
-    model_config = SettingsConfigDict(env_prefix="ANTHROPIC_")
+    model_config = SettingsConfigDict(
+        # Read from both CLAUDE_API_KEY and ANTHROPIC_API_KEY
+        env_prefix="",
+        env_file=".env",
+        case_sensitive=False
+    )
     
-    api_key: str = Field(description="Anthropic API key")
+    # This will read from CLAUDE_API_KEY environment variable
+    claude_api_key: str = Field(alias="CLAUDE_API_KEY", description="Claude API key")
     model: str = Field(default="claude-3-5-sonnet-20241022", description="Claude model to use")
     max_tokens: int = Field(default=1000, description="Max tokens per request")
     temperature: float = Field(default=0.7, description="Model temperature")
@@ -99,12 +105,17 @@ class AnthropicSettings(BaseSettings):
     requests_per_minute: int = Field(default=50, description="API requests per minute")
     requests_per_day: int = Field(default=1000, description="API requests per day")
     
-    @field_validator("api_key")
+    @field_validator("claude_api_key")
     @classmethod
     def validate_api_key(cls, v: str) -> str:
         if not v or not v.startswith("sk-"):
-            raise ValueError("Invalid Anthropic API key")
+            raise ValueError("Invalid Claude API key format - must start with 'sk-'")
         return v
+    
+    @property
+    def api_key(self) -> str:
+        """Get the API key (alias for compatibility)."""
+        return self.claude_api_key
 
 
 class AppSettings(BaseSettings):

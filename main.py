@@ -228,6 +228,10 @@ if __name__ == "__main__":
             # Check if DATABASE_URL is set or individual DB components
             if not settings.database.database_url and not settings.database.password:
                 missing_vars.append(var)
+        elif var == 'CLAUDE_API_KEY':
+            # Check if Claude API key is available
+            if not settings.anthropic.claude_api_key:
+                missing_vars.append(var)
         elif not getattr(settings, var.lower(), None):
             missing_vars.append(var)
     
@@ -241,7 +245,7 @@ if __name__ == "__main__":
     print("=======================")
     print(f"Environment: {settings.environment}")
     print(f"Log Level: {settings.log_level}")
-    print(f"Claude Model: {settings.claude_model}")
+    print(f"Claude Model: {settings.anthropic.model}")
     print("=======================")
     
     try:
