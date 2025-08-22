@@ -13,8 +13,8 @@ from sqlalchemy.orm import selectinload, joinedload
 from src.core.domain.aggregates import User as UserAggregate
 from src.core.domain.entities import Child, CheckIn, EmotionTranslation, FamilyMember
 from src.core.domain.value_objects import Age, FamilyPermissions
-from src.core.models.analytics import WeeklyReport
-from src.core.models.emotion import CheckinType, EmotionTranslation as EmotionTranslationModel
+from src.core.models.emotion import WeeklyReport
+from src.core.models.emotion import Checkin as CheckinModel, CheckinType, EmotionTranslation as EmotionTranslationModel
 from src.core.models.user import Children, User, FamilyMember as FamilyMemberModel
 from src.core.repositories.interfaces import (
     CheckInRepository,
@@ -642,5 +642,187 @@ class SQLAlchemyWeeklyReportRepository(WeeklyReportRepository):
         return count > 0
 
 
-# Note: CheckInRepository implementation would be similar but requires
-# the CheckIn database model to be created first
+class SQLAlchemyCheckInRepository(CheckInRepository):
+    """SQLAlchemy implementation of CheckInRepository."""
+    
+    def __init__(self, session: AsyncSession):
+        self._session = session
+    
+    async def save(self, checkin: CheckIn) -> None:
+        """Save check-in."""
+        # Check if checkin exists
+        existing = await self.get_by_id(checkin.id)
+        
+        if existing:
+            # Update existing
+            stmt = select(CheckinModel).where(CheckinModel.id == checkin.id)
+            result = await self._session.execute(stmt)
+            db_checkin = result.scalar_one()
+            
+            db_checkin.question = checkin.question.text
+            db_checkin.response_text = checkin.response_text
+            db_checkin.detected_emotions = checkin.detected_emotions
+            db_checkin.mood_score = float(checkin.mood_score.value) if checkin.mood_score else None
+            db_checkin.completed_at = checkin.completed_at
+            db_checkin.is_completed = checkin.is_completed
+            
+        else:
+            # Create new
+            db_checkin = CheckinModel(
+                id=checkin.id,
+                user_id=checkin.user_id,
+                child_id=checkin.child_id,
+                checkin_type=CheckinType.DAILY,  # Default type
+                question=checkin.question.text,
+                response_text=checkin.response_text,
+                response_type="text",  # Default type
+                detected_emotions=checkin.detected_emotions,
+                mood_score=float(checkin.mood_score.value) if checkin.mood_score else None,
+                scheduled_at=checkin.scheduled_at,
+                completed_at=checkin.completed_at,
+                is_completed=checkin.is_completed,
+                created_at=datetime.now()
+            )
+            self._session.add(db_checkin)
+        
+        await self._session.commit()
+    
+    async def get_by_id(self, checkin_id: UUID) -> Optional[CheckIn]:
+        """Get check-in by ID."""
+        stmt = select(CheckinModel).where(CheckinModel.id == checkin_id)
+        result = await self._session.execute(stmt)
+        db_checkin = result.scalar_one_or_none()
+        
+        if not db_checkin:
+            return None
+        
+        return self._map_to_entity(db_checkin)
+    
+    async def get_by_user_id(
+        self,
+        user_id: UUID,
+        completed_only: bool = False,
+        limit: int = 10,
+        offset: int = 0
+    ) -> List[CheckIn]:
+        """Get check-ins by user ID."""
+        conditions = [CheckinModel.user_id == user_id]
+        
+        if completed_only:
+            conditions.append(CheckinModel.is_completed == True)
+        
+        stmt = (
+            select(CheckinModel)
+            .where(and_(*conditions))
+            .order_by(desc(CheckinModel.scheduled_at))
+            .limit(limit)
+            .offset(offset)
+        )
+        
+        result = await self._session.execute(stmt)
+        db_checkins = result.scalars().all()
+        
+        return [self._map_to_entity(db_checkin) for db_checkin in db_checkins]
+    
+    async def get_pending(self, user_id: UUID) -> List[CheckIn]:
+        """Get pending check-ins for user."""
+        stmt = (
+            select(CheckinModel)
+            .where(
+                and_(
+                    CheckinModel.user_id == user_id,
+                    CheckinModel.is_completed == False
+                )
+            )
+            .order_by(CheckinModel.scheduled_at)
+        )
+        
+        result = await self._session.execute(stmt)
+        db_checkins = result.scalars().all()
+        
+        return [self._map_to_entity(db_checkin) for db_checkin in db_checkins]
+    
+    async def get_overdue(self) -> List[CheckIn]:
+        """Get all overdue check-ins."""
+        current_time = datetime.now()
+        
+        stmt = (
+            select(CheckinModel)
+            .where(
+                and_(
+                    CheckinModel.is_completed == False,
+                    CheckinModel.scheduled_at < current_time
+                )
+            )
+            .order_by(CheckinModel.scheduled_at)
+        )
+        
+        result = await self._session.execute(stmt)
+        db_checkins = result.scalars().all()
+        
+        return [self._map_to_entity(db_checkin) for db_checkin in db_checkins]
+    
+    async def get_by_date_range(
+        self,
+        user_id: UUID,
+        start_date: datetime,
+        end_date: datetime,
+        child_id: Optional[UUID] = None
+    ) -> List[CheckIn]:
+        """Get check-ins within date range."""
+        conditions = [
+            CheckinModel.user_id == user_id,
+            CheckinModel.scheduled_at >= start_date,
+            CheckinModel.scheduled_at <= end_date
+        ]
+        
+        if child_id:
+            conditions.append(CheckinModel.child_id == child_id)
+        
+        stmt = (
+            select(CheckinModel)
+            .where(and_(*conditions))
+            .order_by(CheckinModel.scheduled_at)
+        )
+        
+        result = await self._session.execute(stmt)
+        db_checkins = result.scalars().all()
+        
+        return [self._map_to_entity(db_checkin) for db_checkin in db_checkins]
+    
+    async def update(self, checkin: CheckIn) -> None:
+        """Update check-in."""
+        await self.save(checkin)
+    
+    async def delete(self, checkin_id: UUID) -> None:
+        """Delete check-in."""
+        stmt = delete(CheckinModel).where(CheckinModel.id == checkin_id)
+        await self._session.execute(stmt)
+        await self._session.commit()
+    
+    def _map_to_entity(self, db_checkin: CheckinModel) -> CheckIn:
+        """Map database model to domain entity."""
+        from src.core.domain.value_objects import CheckInQuestion, MoodScore
+        
+        question = CheckInQuestion(
+            text=db_checkin.question,
+            category="mood",  # Default category
+            age_groups=["all"]  # Default age groups
+        )
+        
+        mood_score = None
+        if db_checkin.mood_score is not None:
+            mood_score = MoodScore(value=db_checkin.mood_score)
+        
+        checkin = CheckIn(
+            user_id=db_checkin.user_id,
+            child_id=db_checkin.child_id,
+            question=question,
+            scheduled_at=db_checkin.scheduled_at,
+            response_text=db_checkin.response_text,
+            detected_emotions=db_checkin.detected_emotions or [],
+            mood_score=mood_score,
+            completed_at=db_checkin.completed_at
+        )
+        checkin.id = db_checkin.id
+        return checkin

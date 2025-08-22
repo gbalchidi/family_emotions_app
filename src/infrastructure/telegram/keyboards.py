@@ -2,7 +2,7 @@
 from typing import List, Optional, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from ...core.models import Children, UserRole
+from ...core.models.user import Children, UserRole
 
 
 class InlineKeyboards:

@@ -10,12 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from .claude_service import ClaudeService, EmotionAnalysisRequest
-from ...core.models import (
-    EmotionTranslation, 
-    TranslationStatus, 
-    User, 
-    Children
-)
+from ...core.models.emotion import EmotionTranslation, TranslationStatus
+from ...core.models.user import User, Children
 from ...core.services import UserService, AnalyticsService
 from ...core.exceptions import (
     ResourceNotFoundError,

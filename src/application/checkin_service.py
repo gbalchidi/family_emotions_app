@@ -11,14 +11,8 @@ from uuid import UUID
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.models import (
-    Checkin, 
-    CheckinType, 
-    ResponseType, 
-    User, 
-    Children,
-    WeeklyReport
-)
+from ..core.models.emotion import Checkin, CheckinType, ResponseType, WeeklyReport
+from ..core.models.user import User, Children
 from ..core.services import UserService, AnalyticsService
 from ..infrastructure.external import ClaudeService
 from ..core.exceptions import ResourceNotFoundError, BusinessLogicError
@@ -545,7 +539,7 @@ class CheckinService:
         week_end: datetime
     ) -> List:
         """Get emotion translations for a specific week."""
-        from ..core.models import EmotionTranslation, TranslationStatus
+        from ..core.models.emotion import EmotionTranslation, TranslationStatus
         
         stmt = (
             select(EmotionTranslation)

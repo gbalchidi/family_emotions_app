@@ -214,7 +214,7 @@ class TaskScheduler:
         async def _run_task():
             try:
                 from sqlalchemy import select
-                from ..core.models import User
+                from ..core.models.user import User
                 
                 logger.info("Starting weekly report generation")
                 

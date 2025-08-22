@@ -8,7 +8,7 @@ from uuid import UUID
 
 from src.core.domain.aggregates import User
 from src.core.domain.entities import CheckIn, Child, EmotionTranslation, FamilyMember
-from src.core.models.analytics import WeeklyReport
+from src.core.models.emotion import WeeklyReport
 
 
 class UserRepository(ABC):

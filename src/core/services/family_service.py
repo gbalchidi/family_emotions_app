@@ -10,7 +10,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import User, Children, FamilyMember, UserRole
+from ..models.user import User, Children, FamilyMember, UserRole
 from ..exceptions import (
     ResourceNotFoundError,
     ValidationError,

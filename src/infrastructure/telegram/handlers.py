@@ -17,7 +17,7 @@ from telegram.ext import (
 
 from .keyboards import InlineKeyboards
 from .states import ConversationStates
-from ...core.models import UserRole
+from ...core.models.user import UserRole
 from ...core.exceptions import (
     RateLimitExceededError,
     ResourceNotFoundError, 
