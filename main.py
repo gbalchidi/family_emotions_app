@@ -138,7 +138,6 @@ class FamilyEmotionsApp:
             
             # Start the bot
             logger.info("Starting Telegram bot polling")
-            await self.bot_app.initialize()
             
             # Start web server for health checks
             config = uvicorn.Config(
@@ -174,8 +173,9 @@ class FamilyEmotionsApp:
     async def _run_bot(self):
         """Run the Telegram bot."""
         try:
+            # Initialize and start the application
+            await self.bot_app.initialize()
             await self.bot_app.start()
-            await self.bot_app.updater.start_polling()
             
             logger.info("Bot is running. Press Ctrl+C to stop.")
             
