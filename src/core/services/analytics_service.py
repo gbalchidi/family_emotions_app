@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from src.core.domain.exceptions import DomainException
-from src.core.models.analytics import WeeklyReport
+from src.core.models.emotion import WeeklyReport
 from src.core.repositories.interfaces import (
     CheckInRepository,
     EmotionTranslationRepository,
