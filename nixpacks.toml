@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ['...', 'python311']
+
+[phases.install]
+cmds = ['echo "Skipping nixpacks install - using Dockerfile"']
+
+[start]
+cmd = 'echo "Using Dockerfile instead"'

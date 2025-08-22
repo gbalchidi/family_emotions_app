@@ -21,9 +21,29 @@ RUN apt-get update && apt-get install -y \
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --gid 1001 appuser
 
-# Copy requirements and install Python dependencies
+# Upgrade pip first
+RUN pip install --upgrade pip
+
+# Copy only requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dependencies without version conflicts - let pip resolve
+RUN pip install python-telegram-bot && \
+    pip install fastapi uvicorn[standard] && \
+    pip install pydantic pydantic-settings && \
+    pip install sqlalchemy alembic asyncpg && \
+    pip install redis && \
+    pip install anthropic && \
+    pip install supabase && \
+    pip install celery && \
+    pip install structlog && \
+    pip install sentry-sdk[fastapi] && \
+    pip install prometheus-client && \
+    pip install python-jose[cryptography] && \
+    pip install httpx && \
+    pip install python-multipart && \
+    pip install psutil && \
+    pip install python-json-logger
 
 # Copy application code
 COPY . .
