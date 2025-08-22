@@ -2,7 +2,7 @@
 # Use 'poetry install' for development
 
 # Core dependencies
-python-telegram-bot==20.7
+python-telegram-bot==20.6
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
@@ -34,7 +34,7 @@ prometheus-client==0.19.0
 python-jose[cryptography]==3.3.0
 
 # HTTP client
-httpx==0.25.2
+httpx==0.24.1
 
 # Utilities
 python-multipart==0.0.6
