@@ -232,8 +232,19 @@ if __name__ == "__main__":
             # Check if Claude API key is available
             if not settings.anthropic.claude_api_key:
                 missing_vars.append(var)
-        elif not getattr(settings, var.lower(), None):
-            missing_vars.append(var)
+        elif var == 'TELEGRAM_BOT_TOKEN':
+            if not settings.telegram.bot_token:
+                missing_vars.append(var)
+        elif var == 'SECRET_KEY':
+            if not settings.secret_key:
+                missing_vars.append(var)
+        elif var == 'ENCRYPTION_KEY':
+            if not settings.encryption_key:
+                missing_vars.append(var)
+        else:
+            # For other variables, try to get them by lowercase name
+            if not getattr(settings, var.lower(), None):
+                missing_vars.append(var)
     
     if missing_vars:
         print(f"ERROR: Missing required environment variables: {', '.join(missing_vars)}")

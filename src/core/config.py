@@ -9,10 +9,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class DatabaseSettings(BaseSettings):
     """Database configuration settings."""
     
-    model_config = SettingsConfigDict()
+    model_config = SettingsConfigDict(extra="ignore")
     
     # Support both DATABASE_URL and individual DB_ prefixed variables
-    database_url: Optional[str] = Field(default=None, description="Full database URL")
+    database_url: Optional[str] = Field(default=None, alias="DATABASE_URL", description="Full database URL")
     host: str = Field(default="localhost", description="Database host")
     port: int = Field(default=5432, description="Database port") 
     name: str = Field(default="family_emotions", description="Database name")
@@ -67,9 +67,9 @@ class RedisSettings(BaseSettings):
 class TelegramSettings(BaseSettings):
     """Telegram bot configuration settings."""
     
-    model_config = SettingsConfigDict(env_prefix="TELEGRAM_")
+    model_config = SettingsConfigDict(extra="ignore")
     
-    bot_token: str = Field(description="Telegram bot token")
+    bot_token: str = Field(alias="TELEGRAM_BOT_TOKEN", description="Telegram bot token")
     webhook_url: Optional[str] = Field(default=None, description="Webhook URL for production")
     webhook_secret: Optional[str] = Field(default=None, description="Webhook secret token")
     
@@ -89,10 +89,9 @@ class AnthropicSettings(BaseSettings):
     """Anthropic Claude API configuration."""
     
     model_config = SettingsConfigDict(
-        # Read from both CLAUDE_API_KEY and ANTHROPIC_API_KEY
-        env_prefix="",
         env_file=".env",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore"  # Allow extra environment variables
     )
     
     # This will read from CLAUDE_API_KEY environment variable
@@ -135,8 +134,8 @@ class AppSettings(BaseSettings):
     environment: str = Field(default="development", description="Environment")
     
     # Security
-    secret_key: str = Field(description="Secret key for encryption")
-    encryption_key: Optional[str] = Field(default=None, description="Encryption key for sensitive data")
+    secret_key: str = Field(alias="SECRET_KEY", description="Secret key for encryption")
+    encryption_key: Optional[str] = Field(default=None, alias="ENCRYPTION_KEY", description="Encryption key for sensitive data")
     
     # Features
     enable_analytics: bool = Field(default=True, description="Enable analytics tracking")
