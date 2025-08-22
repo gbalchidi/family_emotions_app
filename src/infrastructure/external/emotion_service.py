@@ -12,7 +12,12 @@ from sqlalchemy import select
 from .claude_service import ClaudeService, EmotionAnalysisRequest
 from ...core.models.emotion import EmotionTranslation, TranslationStatus
 from ...core.models.user import User, Children
-from ...core.services import UserService, AnalyticsService
+from ...core.services import UserService
+
+# Type import to avoid circular dependency
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ...core.services import AnalyticsService
 from ...core.exceptions import (
     ResourceNotFoundError,
     RateLimitExceededError,
@@ -32,7 +37,7 @@ class EmotionService:
         session: AsyncSession,
         claude_service: ClaudeService,
         user_service: UserService,
-        analytics_service: AnalyticsService
+        analytics_service: "AnalyticsService"
     ):
         self._session = session
         self._claude_service = claude_service

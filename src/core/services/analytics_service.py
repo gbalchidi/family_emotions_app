@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 from uuid import UUID
 
 from src.core.domain.exceptions import DomainException
@@ -15,7 +15,9 @@ from src.core.repositories.interfaces import (
     UserRepository,
     WeeklyReportRepository
 )
-from src.infrastructure.external.claude_service import ClaudeService
+# Type import to avoid circular dependency
+if TYPE_CHECKING:
+    from src.infrastructure.external.claude_service import ClaudeService
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ class AnalyticsService:
         checkin_repository: CheckInRepository,
         translation_repository: EmotionTranslationRepository,
         report_repository: WeeklyReportRepository,
-        claude_service: ClaudeService
+        claude_service: "ClaudeService"
     ):
         self.user_repository = user_repository
         self.checkin_repository = checkin_repository
