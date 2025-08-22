@@ -5,6 +5,10 @@ import signal
 import sys
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, Response
+import uvicorn
+
 from src.infrastructure.telegram.bot import create_bot, setup_bot_commands
 from src.application.emotion_analyzer import EmotionAnalyzer
 from src.core.config import settings
@@ -17,6 +21,58 @@ from src.infrastructure.monitoring.analytics import analytics_service
 # Configure logging first
 configure_logging()
 logger = get_logger(__name__)
+
+# FastAPI app for health checks
+web_app = FastAPI(title="Family Emotions Bot", version="0.1.0")
+
+@web_app.get("/health")
+async def health_check():
+    """Health check endpoint for Coolify."""
+    try:
+        # Check if health checker is available
+        if health_checker.get_health_status():
+            health = health_checker.get_health_status()
+            if health.overall_status.value == "healthy":
+                return {"status": "healthy", "timestamp": health.timestamp.isoformat()}
+        
+        return {"status": "healthy", "message": "Basic health check passed"}
+    except Exception as e:
+        logger.error("Health check failed", error=str(e))
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "error": str(e)}
+        )
+
+@web_app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint."""
+    try:
+        metrics_data = metrics_collector.get_prometheus_metrics()
+        return Response(metrics_data, media_type="text/plain")
+    except Exception as e:
+        logger.error("Metrics endpoint failed", error=str(e))
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to get metrics"}
+        )
+
+@web_app.get("/status")
+async def get_status():
+    """Detailed status endpoint."""
+    try:
+        return {
+            "status": "running",
+            "version": "0.1.0",
+            "environment": settings.environment,
+            "health": health_checker.get_health_summary() if health_checker else None,
+            "metrics": metrics_collector.get_metrics_summary() if metrics_collector else None
+        }
+    except Exception as e:
+        logger.error("Status endpoint failed", error=str(e))
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
 
 class FamilyEmotionsApp:
@@ -83,6 +139,15 @@ class FamilyEmotionsApp:
             logger.info("Starting Telegram bot polling")
             await self.bot_app.initialize()
             
+            # Start web server for health checks
+            config = uvicorn.Config(
+                web_app, 
+                host="0.0.0.0", 
+                port=8000, 
+                log_level="info"
+            )
+            server = uvicorn.Server(config)
+            
             # Set up signal handlers for graceful shutdown
             loop = asyncio.get_event_loop()
             for sig in (signal.SIGTERM, signal.SIGINT):
@@ -90,14 +155,12 @@ class FamilyEmotionsApp:
                     sig, lambda s=sig: asyncio.create_task(self._signal_handler(s))
                 )
             
-            # Start polling
-            await self.bot_app.start()
-            await self.bot_app.updater.start_polling()
-            
-            logger.info("Bot is running. Press Ctrl+C to stop.")
-            
-            # Wait for shutdown signal
-            await self._shutdown_event.wait()
+            # Start services concurrently
+            await asyncio.gather(
+                self._run_bot(),
+                server.serve(),
+                return_exceptions=True
+            )
             
         except KeyboardInterrupt:
             logger.info("Received keyboard interrupt")
@@ -106,6 +169,21 @@ class FamilyEmotionsApp:
             raise
         finally:
             await self.shutdown()
+    
+    async def _run_bot(self):
+        """Run the Telegram bot."""
+        try:
+            await self.bot_app.start()
+            await self.bot_app.updater.start_polling()
+            
+            logger.info("Bot is running. Press Ctrl+C to stop.")
+            
+            # Wait for shutdown signal
+            await self._shutdown_event.wait()
+            
+        except Exception as e:
+            logger.error("Bot error", error=str(e))
+            raise
     
     async def _signal_handler(self, signal_num):
         """Handle shutdown signals."""

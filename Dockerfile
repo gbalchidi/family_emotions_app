@@ -6,7 +6,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/src \
+    PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
@@ -14,6 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user
@@ -25,19 +26,20 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY src/ src/
-COPY scripts/ scripts/
-COPY alembic.ini .
+COPY . .
 
-# Create logs directory
-RUN mkdir -p logs && chown -R appuser:appgroup /app
+# Create necessary directories
+RUN mkdir -p logs tmp && chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
 
+# Expose port
+EXPOSE 8000
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import asyncio; from src.main import health_check; exit(0 if asyncio.run(health_check()) else 1)"
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Default command
-CMD ["python", "src/main.py", "--mode", "run", "--env", "production"]
+CMD ["python", "main.py"]
