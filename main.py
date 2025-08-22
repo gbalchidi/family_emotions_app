@@ -99,6 +99,7 @@ class FamilyEmotionsApp:
             
             # Start monitoring services
             logger.info("Starting monitoring services")
+            await metrics_collector.start()
             health_checker.start_monitoring()
             analytics_service.start_analytics()
             

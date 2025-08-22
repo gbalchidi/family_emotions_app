@@ -240,23 +240,37 @@ class MetricsCollector:
         self._active_users_cache = set()
         self._retention_cache: Dict[str, float] = {}
         
-        # Start background tasks
+        # Background tasks list - will be started when start() is called
         self._background_tasks = []
+        self._started = False
+    
+    async def start(self):
+        """Start the metrics collector and background tasks."""
+        if self._started:
+            logger.warning("Metrics collector already started")
+            return
+            
+        logger.info("Starting metrics collector background tasks")
         self._start_background_tasks()
+        self._started = True
     
     def _start_background_tasks(self):
         """Start background metric processing tasks."""
-        # Update active users every minute
-        task1 = asyncio.create_task(self._update_active_users_periodically())
-        self._background_tasks.append(task1)
-        
-        # Calculate retention rates every hour
-        task2 = asyncio.create_task(self._calculate_retention_periodically())
-        self._background_tasks.append(task2)
-        
-        # Clean up old events every day
-        task3 = asyncio.create_task(self._cleanup_old_events_periodically())
-        self._background_tasks.append(task3)
+        try:
+            # Update active users every minute
+            task1 = asyncio.create_task(self._update_active_users_periodically())
+            self._background_tasks.append(task1)
+            
+            # Calculate retention rates every hour
+            task2 = asyncio.create_task(self._calculate_retention_periodically())
+            self._background_tasks.append(task2)
+            # Clean up old events every day
+            task3 = asyncio.create_task(self._cleanup_old_events_periodically())
+            self._background_tasks.append(task3)
+        except RuntimeError as e:
+            # If no event loop is running, log and continue
+            logger.warning(f"Could not start background tasks: {e}")
+            logger.info("Background tasks will be started when event loop is available")
     
     async def record_event(self, event: MetricEvent):
         """Record a metric event."""
