@@ -224,7 +224,11 @@ if __name__ == "__main__":
     
     missing_vars = []
     for var in required_vars:
-        if not getattr(settings, var.lower(), None):
+        if var == 'DATABASE_URL':
+            # Check if DATABASE_URL is set or individual DB components
+            if not settings.database.database_url and not settings.database.password:
+                missing_vars.append(var)
+        elif not getattr(settings, var.lower(), None):
             missing_vars.append(var)
     
     if missing_vars:

@@ -9,13 +9,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class DatabaseSettings(BaseSettings):
     """Database configuration settings."""
     
-    model_config = SettingsConfigDict(env_prefix="DB_")
+    model_config = SettingsConfigDict()
     
+    # Support both DATABASE_URL and individual DB_ prefixed variables
+    database_url: Optional[str] = Field(default=None, description="Full database URL")
     host: str = Field(default="localhost", description="Database host")
     port: int = Field(default=5432, description="Database port") 
     name: str = Field(default="family_emotions", description="Database name")
     user: str = Field(default="postgres", description="Database user")
-    password: str = Field(description="Database password")
+    password: Optional[str] = Field(default=None, description="Database password")
     
     # Connection pool settings
     pool_size: int = Field(default=10, description="Connection pool size")
@@ -26,7 +28,19 @@ class DatabaseSettings(BaseSettings):
     @property
     def url(self) -> str:
         """Get database URL."""
-        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+        if self.database_url:
+            # If DATABASE_URL is provided, use it directly but ensure asyncpg driver
+            if self.database_url.startswith("postgresql://"):
+                return self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif self.database_url.startswith("postgresql+asyncpg://"):
+                return self.database_url
+            else:
+                return self.database_url
+        else:
+            # Build from individual components
+            if not self.password:
+                raise ValueError("Database password is required")
+            return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
 
 
 class RedisSettings(BaseSettings):
