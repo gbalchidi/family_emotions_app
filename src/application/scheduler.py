@@ -330,7 +330,7 @@ Please share your thoughts or observations. This helps me provide better insight
 """
             
             # Send message via bot
-            await self.bot.application.bot.send_message(
+            await self.bot.bot.send_message(
                 chat_id=user.telegram_id,
                 text=message_text,
                 parse_mode="HTML"

@@ -862,12 +862,17 @@ What would you like to do? 👇
     )
 
 
-def setup_handlers(bot):
+def setup_handlers(app_or_bot):
     """Setup all handlers for the bot."""
-    app = bot.application
+    # Handle both Application object and bot object with .application attribute
+    if hasattr(app_or_bot, 'application'):
+        app = app_or_bot.application
+    else:
+        app = app_or_bot
     
     # Store bot instance in context for handlers
-    app.bot_data['bot_instance'] = bot
+    # Note: bot instance is accessible via app.bot
+    app.bot_data['bot_instance'] = app.bot if hasattr(app, 'bot') else None
     
     # Command handlers
     app.add_handler(CommandHandler("start", start_handler))
