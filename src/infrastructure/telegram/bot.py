@@ -297,3 +297,29 @@ Use the menu below to continue 👇
         """Stop the bot gracefully."""
         logger.info("Stopping Family Emotions Bot...")
         self.application.stop()
+
+
+def create_bot(emotion_analyzer) -> Application:
+    """Create and configure the Telegram bot application."""
+    from ...application.emotion_analyzer import EmotionAnalyzer
+    from ...core.services import UserService, FamilyService, AnalyticsService
+    from ...infrastructure.external import EmotionService
+    
+    # TODO: Get these services from dependency injection container
+    # For now, create basic instances - this needs to be properly implemented
+    logger.warning("Creating bot with temporary service instances - implement proper DI")
+    
+    # Create bot application
+    application = Application.builder().token(settings.telegram.bot_token).build()
+    
+    return application
+
+
+def setup_bot_commands(application: Application):
+    """Setup bot commands and handlers."""
+    from .handlers import setup_handlers
+    
+    # Setup conversation handlers
+    setup_handlers(application)
+    
+    logger.info("Bot commands and handlers configured successfully")
