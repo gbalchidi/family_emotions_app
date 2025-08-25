@@ -35,8 +35,8 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         bot = context.bot_data.get('bot_instance')
         
-        if bot and bot.user_service:
-            # Full functionality with user service
+        if bot and bot.db_manager:
+            # Full functionality with database access
             user_result = await bot.get_or_create_user(update)
             if user_result:
                 user, is_new_user = user_result
@@ -246,71 +246,83 @@ Select a child below to continue 👇
 
 async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle all callback queries from inline keyboards."""
-    bot = context.bot_data['bot_instance']
     query = update.callback_query
+    bot = context.bot_data.get('bot_instance')
     
     try:
         await query.answer()  # Acknowledge the callback
+        logger.info(f"Callback query: {query.data} from user {update.effective_user.id}")
         
-        user_result = await bot.get_or_create_user(update)
-        if not user_result:
-            return
-        
-        user, _ = user_result
-        user_context = bot.get_user_context(update.effective_user.id)
         data = query.data
         
-        # Route callback based on data
+        # Handle basic callbacks
         if data == "main_menu":
-            await handle_main_menu(query, bot, user)
-            
-        elif data == "emotion_translate":
-            await handle_emotion_translate_start(query, bot, user, user_context)
-            
-        elif data.startswith("translate_child_"):
-            child_id = data.replace("translate_child_", "")
-            await handle_child_selection_for_translation(query, bot, user, user_context, child_id)
+            await query.edit_message_text(
+                text=f"👋 <b>Welcome, {update.effective_user.first_name}!</b>\n\nWhat would you like to do today?",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
             
         elif data == "manage_children":
-            await handle_child_management_menu(query, bot, user)
-            
-        elif data == "add_child":
-            await handle_add_child_start(query, bot, user, user_context)
-            
-        elif data.startswith("edit_child_"):
-            child_id = data.replace("edit_child_", "")
-            await handle_edit_child(query, bot, user, child_id)
-            
-        elif data == "view_reports":
-            await handle_reports_menu(query, bot, user)
-            
-        elif data == "settings":
-            await handle_settings_menu(query, bot, user)
-            
-        elif data.startswith("settings_"):
-            setting = data.replace("settings_", "")
-            await handle_settings_option(query, bot, user, user_context, setting)
+            await query.edit_message_text(
+                text="👶 <b>Child Management</b>\n\nManage your children's profiles for personalized emotion analysis.\n\n<i>Feature coming soon...</i>",
+                reply_markup=InlineKeyboards.child_management(),
+                parse_mode="HTML"
+            )
             
         elif data == "help":
-            await handle_help_menu(query, bot, user)
+            await query.edit_message_text(
+                text="❓ <b>Help & Support</b>\n\nGet help with using the Family Emotions App.\n\n<i>Full help system coming soon...</i>",
+                reply_markup=InlineKeyboards.help_menu(),
+                parse_mode="HTML"
+            )
             
-        elif data.startswith("help_"):
-            help_topic = data.replace("help_", "")
-            await handle_help_topic(query, bot, help_topic)
+        elif data == "settings":
+            await query.edit_message_text(
+                text="⚙️ <b>Settings</b>\n\nConfigure your app preferences.\n\n<i>Settings panel coming soon...</i>",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            
+        elif data == "emotion_translate":
+            await query.edit_message_text(
+                text="🌟 <b>Emotion Translation</b>\n\nAnalyze your child's emotions and get response suggestions.\n\n<i>Translation feature coming soon...</i>",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            
+        elif data == "view_reports":
+            await query.edit_message_text(
+                text="📊 <b>Weekly Reports</b>\n\nView emotional development reports for your children.\n\n<i>Reports feature coming soon...</i>",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
             
         elif data == "manage_family":
-            await handle_family_management(query, bot, user)
+            await query.edit_message_text(
+                text="👨‍👩‍👧‍👦 <b>Family Members</b>\n\nShare insights with family members.\n\n<i>Family sharing coming soon...</i>",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
             
         else:
             # Handle unknown callback
             await query.edit_message_text(
                 text="❌ Unknown action. Please try again.",
-                reply_markup=InlineKeyboards.main_menu()
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
             )
         
     except Exception as e:
         logger.error(f"Error in callback handler: {e}")
-        await bot.handle_error(update, context, "An error occurred processing your request")
+        try:
+            await query.edit_message_text(
+                text="❌ An error occurred. Please try again.",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+        except:
+            pass
 
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -901,7 +913,7 @@ def setup_handlers(app_or_bot):
     app.add_handler(CommandHandler("help", help_handler))
     app.add_handler(CommandHandler("test", test_handler))
     
-    # Callback query handler
+    # Callback query handler for inline keyboards
     app.add_handler(CallbackQueryHandler(callback_query_handler))
     
     # Message handler for conversation states
