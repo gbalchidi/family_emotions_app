@@ -326,7 +326,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             # Set conversation state for this user
             if bot:
                 user_context = bot.get_user_context(update.effective_user.id)
-                user_context.set_state("ADD_CHILD_NAME")
+                user_context.current_state = "ADD_CHILD_NAME"
             
         else:
             # Handle unknown callback
@@ -364,7 +364,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_state = getattr(user_context, 'current_state', None)
         message_text = update.message.text
         
+        logger.info(f"User context: {user_context}")
         logger.info(f"Current state: {current_state}")
+        logger.info(f"User context methods: {dir(user_context)}")
         
         # Route message based on conversation state
         if current_state == "ADD_CHILD_NAME":
@@ -397,8 +399,8 @@ async def handle_add_child_name(update: Update, bot, name: str):
             return
         
         user_context = bot.get_user_context(update.effective_user.id)
-        user_context.set_temp_data("child_name", name.strip())
-        user_context.set_state("ADD_CHILD_AGE")
+        user_context.temp_data["child_name"] = name.strip()
+        user_context.current_state = "ADD_CHILD_AGE"
         
         await update.message.reply_text(
             text=f"👶 <b>Adding {name}</b>\n\nHow old is {name}? Please enter their age in years (0-18).\n\n<i>Type the age below:</i>",
@@ -420,9 +422,9 @@ async def handle_add_child_age(update: Update, bot, user_context, age_text: str)
             )
             return
         
-        name = user_context.get_temp_data("child_name")
-        user_context.set_temp_data("child_age", age)
-        user_context.clear()  # Reset state
+        name = user_context.temp_data.get("child_name", "Unknown")
+        user_context.temp_data["child_age"] = age
+        user_context.current_state = None  # Reset state
         
         # For now, just complete the process
         success_text = f"""

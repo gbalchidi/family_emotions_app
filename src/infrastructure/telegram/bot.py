@@ -42,9 +42,10 @@ class FamilyEmotionsBot:
         
         # Setup handlers will be called from setup_handlers function
         
-    def get_user_context(self, user_id: int) -> UserContext:
+    def get_user_context(self, user_id: int):
         """Get or create user context for conversation state management."""
         if user_id not in self.user_contexts:
+            from .states import UserContext
             context = UserContext()
             context.session_id = str(uuid4())
             self.user_contexts[user_id] = context
