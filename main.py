@@ -220,16 +220,23 @@ class FamilyEmotionsApp:
             await self.bot_app.initialize()
             await self.bot_app.start()
             
-            # Check and clear any existing webhooks before starting polling
+            # FORCE clear any existing webhooks/polling conflicts
             try:
+                logger.info("Force clearing any existing bot connections...")
+                # Always try to delete webhook regardless
+                await self.bot_app.bot.delete_webhook(drop_pending_updates=True)
+                logger.info("Forced webhook deletion completed")
+                
+                # Give time for Telegram to process
+                import asyncio
+                await asyncio.sleep(2)
+                
+                # Check status
                 webhook_info = await self.bot_app.bot.get_webhook_info()
-                logger.info(f"Current webhook: {webhook_info.url if webhook_info.url else 'None'}")
-                if webhook_info.url:
-                    logger.info("Removing existing webhook before starting polling...")
-                    await self.bot_app.bot.delete_webhook(drop_pending_updates=True)
-                    logger.info("Webhook removed successfully")
+                logger.info(f"Post-cleanup webhook status: {webhook_info.url if webhook_info.url else 'None'}")
+                
             except Exception as e:
-                logger.warning(f"Could not check/clear webhook: {e}")
+                logger.warning(f"Error during connection cleanup: {e}")
             
             # Start the updater for polling
             if hasattr(self.bot_app, 'updater') and self.bot_app.updater:
