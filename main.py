@@ -223,9 +223,11 @@ class FamilyEmotionsApp:
             # Check and clear any existing webhooks before starting polling
             try:
                 webhook_info = await self.bot_app.bot.get_webhook_info()
+                logger.info(f"Current webhook: {webhook_info.url if webhook_info.url else 'None'}")
                 if webhook_info.url:
                     logger.info("Removing existing webhook before starting polling...")
                     await self.bot_app.bot.delete_webhook(drop_pending_updates=True)
+                    logger.info("Webhook removed successfully")
             except Exception as e:
                 logger.warning(f"Could not check/clear webhook: {e}")
             
