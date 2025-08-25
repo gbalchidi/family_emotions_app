@@ -58,16 +58,23 @@ Use /help to see all available commands!
         
         # Try to create user in background (optional)
         bot = context.bot_data.get('bot_instance')
+        logger.info(f"Bot instance available: {bot is not None}")
+        
+        if bot:
+            logger.info(f"Database manager available: {bot.db_manager is not None}")
+            
         if bot and bot.db_manager:
             try:
-                logger.debug(f"Background user creation for {update.effective_user.id}")
+                logger.info(f"Background user creation for {update.effective_user.id}")
                 user_result = await bot.get_or_create_user(update)
                 if user_result:
                     logger.info(f"User successfully created/found in database")
                 else:
                     logger.warning("Database user creation returned None")
             except Exception as e:
-                logger.warning(f"Background database operation failed: {e}")
+                logger.warning(f"Background database operation failed: {e}", exc_info=True)
+        else:
+            logger.info("Skipping database operations - database manager not available")
         
     except Exception as e:
         logger.error(f"Error in start handler: {e}")

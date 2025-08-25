@@ -327,7 +327,8 @@ if __name__ == "__main__":
     print("🤖 Family Emotions Bot")
     print("=======================")
     print(f"Environment: {settings.environment}")
-    print(f"Log Level: {settings.log_level}")
+    print(f"Log Level: DEBUG")
+    # Temporarily set to DEBUG for troubleshooting
     print(f"Claude Model: {settings.anthropic.model}")
     print("=======================")
     
