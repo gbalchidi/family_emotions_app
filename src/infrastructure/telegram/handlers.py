@@ -555,8 +555,31 @@ What would you like to do next? 👇
             
         except Exception as e:
             logger.error(f"Error calling Claude API: {e}")
+            # Provide fallback emotional analysis without Claude API
+            fallback_analysis = f"""
+🎯 <b>Emotion Analysis (Fallback Mode)</b>
+
+📝 <b>Your situation:</b>
+<i>"{message_text}"</i>
+
+**Emotions detected:** Your child may be experiencing frustration, sadness, or feeling overwhelmed.
+
+**Possible reasons:** Children often act out when they're struggling with big emotions they don't know how to express, need attention, or feel misunderstood.
+
+**Suggested responses:**
+1. **Listen first** - "I can see you're upset. Can you tell me what's bothering you?"
+2. **Validate feelings** - "It's okay to feel frustrated. Your feelings are important to me."
+3. **Set gentle boundaries** - "I understand you're angry, but let's find a better way to talk about this."
+
+💡 <b>Remember:</b> Every child is unique. Trust your instincts and adapt these suggestions to your child's personality and needs.
+
+<i>Note: This is a basic analysis. Full AI-powered analysis is temporarily unavailable.</i>
+
+What would you like to do next? 👇
+"""
+            
             await processing_msg.edit_text(
-                text="❌ <b>Analysis failed</b>\n\nSorry, I couldn't analyze the emotions right now. Please try again later.\n\nThis could be due to:\n• API service temporarily unavailable\n• Network connection issues\n• Rate limiting\n\nPlease try again in a few moments.",
+                text=fallback_analysis,
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )

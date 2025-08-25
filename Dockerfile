@@ -29,10 +29,12 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 
 # Install dependencies without version conflicts - let pip resolve
-RUN pip install python-telegram-bot && \
+# Install PostgreSQL drivers FIRST
+RUN pip install psycopg2-binary asyncpg && \
+    pip install python-telegram-bot && \
     pip install fastapi uvicorn[standard] && \
     pip install pydantic pydantic-settings && \
-    pip install sqlalchemy alembic asyncpg psycopg2-binary && \
+    pip install sqlalchemy alembic && \
     pip install redis && \
     pip install anthropic && \
     pip install supabase && \
