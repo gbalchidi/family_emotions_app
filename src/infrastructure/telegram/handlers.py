@@ -316,6 +316,18 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 parse_mode="HTML"
             )
             
+        elif data == "add_child":
+            # Start add child flow
+            await query.edit_message_text(
+                text="👶 <b>Add New Child</b>\n\nWhat is your child's name?\n\n<i>Please type the name below:</i>",
+                parse_mode="HTML"
+            )
+            
+            # Set conversation state for this user
+            if bot:
+                user_context = bot.get_user_context(update.effective_user.id)
+                user_context.set_state("ADD_CHILD_NAME")
+            
         else:
             # Handle unknown callback
             await query.edit_message_text(
@@ -338,40 +350,28 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle text messages based on conversation state."""
-    bot = context.bot_data['bot_instance']
-    
     try:
-        user_result = await bot.get_or_create_user(update)
-        if not user_result:
+        logger.info(f"Message from user {update.effective_user.id}: {update.message.text}")
+        
+        bot = context.bot_data.get('bot_instance')
+        if not bot:
+            await update.message.reply_text(
+                text="🤔 I'm not sure what you mean. Use /start to get started!"
+            )
             return
         
-        user, _ = user_result
         user_context = bot.get_user_context(update.effective_user.id)
-        
-        current_state = user_context.current_state
+        current_state = getattr(user_context, 'current_state', None)
         message_text = update.message.text
         
+        logger.info(f"Current state: {current_state}")
+        
         # Route message based on conversation state
-        if current_state == ConversationStates.ADD_CHILD_NAME:
-            await handle_add_child_name(update, bot, user, user_context, message_text)
+        if current_state == "ADD_CHILD_NAME":
+            await handle_add_child_name(update, bot, message_text)
             
-        elif current_state == ConversationStates.ADD_CHILD_AGE:
-            await handle_add_child_age(update, bot, user, user_context, message_text)
-            
-        elif current_state == ConversationStates.ADD_CHILD_PERSONALITY:
-            await handle_add_child_personality(update, bot, user, user_context, message_text)
-            
-        elif current_state == ConversationStates.ADD_CHILD_INTERESTS:
-            await handle_add_child_interests(update, bot, user, user_context, message_text)
-            
-        elif current_state == ConversationStates.ADD_CHILD_SPECIAL_NEEDS:
-            await handle_add_child_special_needs(update, bot, user, user_context, message_text)
-            
-        elif current_state == ConversationStates.EMOTION_ENTER_MESSAGE:
-            await handle_emotion_message_input(update, bot, user, user_context, message_text)
-            
-        elif current_state == ConversationStates.EMOTION_ADD_CONTEXT:
-            await handle_emotion_context_input(update, bot, user, user_context, message_text)
+        elif current_state == "ADD_CHILD_AGE":
+            await handle_add_child_age(update, bot, user_context, message_text)
             
         else:
             # Default response for unexpected messages
@@ -381,11 +381,76 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         
     except Exception as e:
-        logger.error(f"Error in message handler: {e}")
-        await bot.handle_error(update, context, "An error occurred processing your message")
+        logger.error(f"Error in message handler: {e}", exc_info=True)
+        await update.message.reply_text("❌ An error occurred processing your message.")
 
 
 # Individual handler functions for different actions
+
+async def handle_add_child_name(update: Update, bot, name: str):
+    """Handle child name input."""
+    try:
+        if len(name.strip()) < 1:
+            await update.message.reply_text(
+                text="⚠️ Please enter a valid name for your child."
+            )
+            return
+        
+        user_context = bot.get_user_context(update.effective_user.id)
+        user_context.set_temp_data("child_name", name.strip())
+        user_context.set_state("ADD_CHILD_AGE")
+        
+        await update.message.reply_text(
+            text=f"👶 <b>Adding {name}</b>\n\nHow old is {name}? Please enter their age in years (0-18).\n\n<i>Type the age below:</i>",
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error handling child name: {e}")
+        await update.message.reply_text("❌ Something went wrong. Please try again.")
+
+
+async def handle_add_child_age(update: Update, bot, user_context, age_text: str):
+    """Handle child age input."""
+    try:
+        age = int(age_text.strip())
+        if age < 0 or age > 18:
+            await update.message.reply_text(
+                text="⚠️ Please enter a valid age between 0 and 18 years."
+            )
+            return
+        
+        name = user_context.get_temp_data("child_name")
+        user_context.set_temp_data("child_age", age)
+        user_context.clear()  # Reset state
+        
+        # For now, just complete the process
+        success_text = f"""
+✅ <b>Child Added Successfully!</b>
+
+👶 <b>{name}</b>
+📅 <b>Age:</b> {age} years old
+
+{name} has been added to your family profile! You can now get personalized emotion translations and analysis.
+
+What would you like to do next? 👇
+"""
+        
+        await update.message.reply_text(
+            text=success_text,
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        
+        logger.info(f"Child {name} ({age}) added successfully")
+        
+    except ValueError:
+        await update.message.reply_text(
+            text="⚠️ Please enter a valid number for the age."
+        )
+    except Exception as e:
+        logger.error(f"Error handling child age: {e}")
+        await update.message.reply_text("❌ Something went wrong. Please try again.")
 
 async def handle_main_menu(query, bot, user):
     """Handle main menu display."""

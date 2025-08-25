@@ -83,9 +83,12 @@ class UserContext:
         self.selected_child_id = None
         self.current_translation_id = None
     
-    def set_state(self, state: ConversationStates):
+    def set_state(self, state):
         """Set current conversation state."""
-        self.current_state = state
+        if isinstance(state, str):
+            self.current_state = state
+        else:
+            self.current_state = state
     
     def get_temp_data(self, key: str, default=None):
         """Get temporary data by key."""
