@@ -396,7 +396,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Individual handler functions for different actions
 
 async def handle_add_child_name(update: Update, bot, user_context, name: str):
-    """Handle child name input."""
+    """Handle child name input. FIXED SIGNATURE - 4 parameters including name."""
     try:
         if len(name.strip()) < 1:
             await update.message.reply_text(
