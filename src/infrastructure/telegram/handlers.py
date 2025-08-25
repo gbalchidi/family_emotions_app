@@ -501,6 +501,8 @@ async def handle_emotion_translate_input(update: Update, bot, message_text: str)
             else:
                 logger.error("Claude API key is None or empty!")
                 
+            # Try to debug the API call
+            logger.info(f"Creating Anthropic client with model: {settings.anthropic.model}")
             client = Anthropic(api_key=api_key)
             
             prompt = f"""You are an expert child psychologist helping parents understand their child's emotions. 
@@ -522,11 +524,13 @@ Respond in this format:
 
 Keep responses practical, empathetic, and focused on connection with the child."""
 
+            logger.info("Making Claude API request...")
             response = client.messages.create(
                 model=settings.anthropic.model,
                 max_tokens=1000,
                 messages=[{"role": "user", "content": prompt}]
             )
+            logger.info(f"Claude API response received, length: {len(response.content[0].text) if response.content else 0}")
             
             result_text = f"""
 🎯 <b>Emotion Analysis Complete</b>
