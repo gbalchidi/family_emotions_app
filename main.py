@@ -93,7 +93,13 @@ class FamilyEmotionsApp:
             logger.info("Initializing database connection")
             from src.infrastructure.database.database import DatabaseManager
             self.db_manager = DatabaseManager()
-            await self.db_manager.initialize()
+            
+            try:
+                await self.db_manager.initialize()
+                logger.info("Database connection established successfully")
+            except Exception as db_error:
+                logger.warning(f"Database initialization failed, continuing without database: {db_error}")
+                self.db_manager = None
             
             # Initialize emotion analyzer
             logger.info("Initializing emotion analyzer")
@@ -107,7 +113,7 @@ class FamilyEmotionsApp:
             try:
                 from src.infrastructure.telegram.bot import FamilyEmotionsBot
                 
-                # Create bot instance and inject database manager
+                # Create bot instance
                 family_bot = FamilyEmotionsBot(
                     user_service=None,  # Will create on-demand
                     family_service=None,
@@ -115,18 +121,19 @@ class FamilyEmotionsApp:
                     analytics_service=None
                 )
                 
-                # Inject database manager for service creation
-                family_bot.db_manager = self.db_manager
+                # Inject database manager for service creation (if available)
+                if self.db_manager:
+                    family_bot.db_manager = self.db_manager
+                    logger.info("Bot instance created with database access")
+                else:
+                    logger.info("Bot instance created without database (basic mode)")
                 
                 setup_bot_commands(self.bot_app, bot_instance=family_bot)
-                logger.info("Bot instance created with database access")
                 
             except Exception as e:
-                logger.warning(f"Failed to create bot instance with services: {e}")
-                # Fallback to minimal bot
-                from src.infrastructure.telegram.bot import FamilyEmotionsBot
-                family_bot = FamilyEmotionsBot()
-                setup_bot_commands(self.bot_app, bot_instance=family_bot)
+                logger.error(f"Failed to create bot instance: {e}")
+                # Fallback to simple setup
+                setup_bot_commands(self.bot_app)
             
             # Start monitoring services
             logger.info("Starting monitoring services")

@@ -35,23 +35,26 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         bot = context.bot_data.get('bot_instance')
         
+        # Try database functionality first, fallback to basic if fails
         if bot and bot.db_manager:
-            # Full functionality with database access
-            user_result = await bot.get_or_create_user(update)
-            if user_result:
-                user, is_new_user = user_result
-                greeting = await bot.format_user_greeting(user, is_new_user)
-                
-                await update.message.reply_text(
-                    text=greeting,
-                    reply_markup=InlineKeyboards.main_menu(),
-                    parse_mode="HTML"
-                )
-            else:
-                await update.message.reply_text("❌ Failed to initialize user account. Please try again.")
-        else:
-            # Basic functionality without services
-            welcome_text = f"""
+            try:
+                # Full functionality with database access
+                user_result = await bot.get_or_create_user(update)
+                if user_result:
+                    user, is_new_user = user_result
+                    greeting = await bot.format_user_greeting(user, is_new_user)
+                    
+                    await update.message.reply_text(
+                        text=greeting,
+                        reply_markup=InlineKeyboards.main_menu(),
+                        parse_mode="HTML"
+                    )
+                    return
+            except Exception as e:
+                logger.warning(f"Database functionality failed, falling back to basic mode: {e}")
+        
+        # Basic functionality fallback
+        welcome_text = f"""
 👋 <b>Welcome to Family Emotions App, {update.effective_user.first_name}!</b>
 
 I'm here to help you understand and respond to your child's emotions better.
@@ -66,11 +69,12 @@ Use /help to see all available commands!
 
 <i>Note: Full features are being initialized...</i>
 """
-            
-            await update.message.reply_text(
-                text=welcome_text,
-                parse_mode="HTML"
-            )
+        
+        await update.message.reply_text(
+            text=welcome_text,
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
         
     except Exception as e:
         logger.error(f"Error in start handler: {e}")
