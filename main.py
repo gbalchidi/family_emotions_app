@@ -95,6 +95,7 @@ class FamilyEmotionsApp:
             # Create Telegram bot
             logger.info("Creating Telegram bot")
             self.bot_app = create_bot(self.emotion_analyzer)
+            
             setup_bot_commands(self.bot_app)
             
             # Start monitoring services
@@ -191,13 +192,7 @@ class FamilyEmotionsApp:
                 logger.info("Starting bot polling...")
                 await self.bot_app.updater.start_polling(
                     allowed_updates=None,  # Accept all update types
-                    drop_pending_updates=True,  # Start fresh, ignore pending updates
-                    poll_interval=0.0,  # No delay between polls for responsiveness
-                    timeout=10,  # Long polling timeout (seconds)
-                    read_timeout=2,  # Read timeout for receiving updates
-                    write_timeout=10,  # Write timeout for sending responses
-                    connect_timeout=60,  # Connection establishment timeout
-                    pool_timeout=10  # Connection pool timeout
+                    drop_pending_updates=True  # Start fresh, ignore pending updates
                 )
                 logger.info("Bot is now polling for updates and ready to receive messages...")
             else:

@@ -315,9 +315,13 @@ def create_bot(emotion_analyzer) -> Application:
     return application
 
 
-def setup_bot_commands(application: Application):
+def setup_bot_commands(application: Application, bot_instance=None):
     """Setup bot commands and handlers."""
     from .handlers import setup_handlers
+    
+    # Store the bot instance in bot_data for handlers to access
+    if bot_instance:
+        application.bot_data['bot_instance'] = bot_instance
     
     # Setup conversation handlers
     setup_handlers(application)

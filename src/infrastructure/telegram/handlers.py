@@ -30,49 +30,39 @@ logger = logging.getLogger(__name__)
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
-    bot = context.bot_data['bot_instance']
-    
     try:
-        # Get or create user
-        user_result = await bot.get_or_create_user(update)
-        if not user_result:
-            await bot.handle_error(update, context, "Failed to initialize user account")
-            return
+        logger.info(f"Start command from user {update.effective_user.id}")
         
-        user, is_new_user = user_result
-        
-        # Clear any existing context
-        bot.clear_user_context(update.effective_user.id)
-        user_context = bot.get_user_context(update.effective_user.id)
-        user_context.set_state(ConversationStates.MAIN_MENU)
-        
-        # Send welcome message
-        greeting = await bot.format_user_greeting(user, is_new_user)
+        welcome_text = f"""
+👋 <b>Welcome to Family Emotions App, {update.effective_user.first_name}!</b>
+
+I'm here to help you understand and respond to your child's emotions better.
+
+🌟 <b>What I can do:</b>
+• Translate your child's emotional expressions
+• Provide age-appropriate response suggestions
+• Generate weekly emotional development reports
+• Track emotional patterns and growth
+
+Use /help to see all available commands!
+"""
         
         await update.message.reply_text(
-            text=greeting,
-            reply_markup=InlineKeyboards.main_menu(),
+            text=welcome_text,
             parse_mode="HTML"
-        )
-        
-        # Track start command usage
-        await bot.analytics_service.track_event(
-            event_type="bot_command_used",
-            user_id=user.id,
-            user_telegram_id=user.telegram_id,
-            event_data={"command": "start", "is_new_user": is_new_user}
         )
         
     except Exception as e:
         logger.error(f"Error in start handler: {e}")
-        await bot.handle_error(update, context, "Failed to start bot")
+        await update.message.reply_text("❌ An error occurred. Please try again.")
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command."""
-    bot = context.bot_data['bot_instance']
-    
-    help_text = """
+    try:
+        logger.info(f"Help command from user {update.effective_user.id}")
+        
+        help_text = """
 ❓ <b>Family Emotions App Help</b>
 
 🌟 <b>Main Features:</b>
@@ -86,33 +76,43 @@ Add your children's profiles with age, personality traits, and interests for mor
 <b>📊 Weekly Reports</b>
 Get comprehensive reports on your child's emotional development and patterns.
 
-<b>👨‍👩‍👧‍👦 Family Sharing</b>
-Add family members to share insights and collaborate on child care.
-
-<b>⚙️ Settings</b>
-Customize language, notifications, and account preferences.
-
-📱 <b>Quick Commands:</b>
-/start - Return to main menu
+📱 <b>Available Commands:</b>
+/start - Welcome and main menu
 /help - Show this help message
-/stats - View your usage statistics
-/children - Quick access to child management
-/translate - Start emotion translation
+/settings - Bot settings (coming soon)
+/test - Test bot functionality
 
 💡 <b>Tips:</b>
 • Be specific when describing situations
-• Add context about your child's personality
-• Review weekly reports for insights
+• Add context about your child's personality  
 • Use family sharing for consistent responses
 
-Need more help? Use the Help menu below! 👇
+Bot is currently in development mode.
 """
-    
-    await update.message.reply_text(
-        text=help_text,
-        reply_markup=InlineKeyboards.help_menu(),
-        parse_mode="HTML"
-    )
+        
+        await update.message.reply_text(
+            text=help_text,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in help handler: {e}")
+        await update.message.reply_text("❌ An error occurred. Please try again.")
+
+
+async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /test command."""
+    try:
+        logger.info(f"Test command from user {update.effective_user.id}")
+        
+        await update.message.reply_text(
+            text="✅ <b>Bot is working!</b>\n\nPolling is active and commands are being received.",
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in test handler: {e}")
+        await update.message.reply_text("❌ Test failed.")
 
 
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -871,15 +871,15 @@ def setup_handlers(app_or_bot):
         app = app_or_bot
     
     # Store bot instance in context for handlers
-    # Note: bot instance is accessible via app.bot
-    app.bot_data['bot_instance'] = app.bot if hasattr(app, 'bot') else None
+    # We need to pass the actual FamilyEmotionsBot instance, not the Telegram bot
+    # This will be set by the calling code in main.py
+    if not app.bot_data.get('bot_instance'):
+        logger.warning("Bot instance not set in bot_data - handlers may not work correctly")
     
     # Command handlers
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("help", help_handler))
-    app.add_handler(CommandHandler("stats", stats_handler))
-    app.add_handler(CommandHandler("children", children_handler))
-    app.add_handler(CommandHandler("translate", translate_handler))
+    app.add_handler(CommandHandler("test", test_handler))
     
     # Callback query handler
     app.add_handler(CallbackQueryHandler(callback_query_handler))
