@@ -796,69 +796,7 @@ What is your child's name?
     )
 
 
-async def handle_add_child_name(update, bot, user, user_context, name):
-    """Handle child name input."""
-    if len(name.strip()) < 1:
-        await update.message.reply_text(
-            text="⚠️ Please enter a valid name for your child."
-        )
-        return
-    
-    user_context.set_temp_data("child_name", name.strip())
-    user_context.set_state(ConversationStates.ADD_CHILD_AGE)
-    
-    text = f"""
-👶 <b>Adding {name}</b>
 
-How old is {name}? Please enter their age in years (0-18).
-
-<i>Type the age below:</i>
-"""
-    
-    await update.message.reply_text(
-        text=text,
-        parse_mode="HTML"
-    )
-
-
-async def handle_add_child_age(update, bot, user, user_context, age_text):
-    """Handle child age input."""
-    try:
-        age = int(age_text.strip())
-        if age < 0 or age > 18:
-            await update.message.reply_text(
-                text="⚠️ Please enter a valid age between 0 and 18 years."
-            )
-            return
-        
-        user_context.set_temp_data("child_age", age)
-        user_context.set_state(ConversationStates.ADD_CHILD_PERSONALITY)
-        
-        name = user_context.get_temp_data("child_name")
-        
-        text = f"""
-👶 <b>Adding {name} ({age} years)</b>
-
-Tell me about {name}'s personality. This helps me provide better emotion analysis.
-
-For example:
-• "Shy and sensitive, loves books"
-• "Energetic and outgoing, gets frustrated easily"
-• "Creative and imaginative, sometimes anxious"
-
-<i>Describe their personality below, or type "skip" to continue:</i>
-"""
-        
-        await update.message.reply_text(
-            text=text,
-            reply_markup=InlineKeyboards.skip_optional(),
-            parse_mode="HTML"
-        )
-        
-    except ValueError:
-        await update.message.reply_text(
-            text="⚠️ Please enter a valid number for the age."
-        )
 
 
 async def handle_add_child_personality(update, bot, user, user_context, personality):
