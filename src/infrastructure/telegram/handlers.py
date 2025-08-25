@@ -33,24 +33,44 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         logger.info(f"Start command from user {update.effective_user.id}")
         
-        welcome_text = f"""
+        bot = context.bot_data.get('bot_instance')
+        
+        if bot and bot.user_service:
+            # Full functionality with user service
+            user_result = await bot.get_or_create_user(update)
+            if user_result:
+                user, is_new_user = user_result
+                greeting = await bot.format_user_greeting(user, is_new_user)
+                
+                await update.message.reply_text(
+                    text=greeting,
+                    reply_markup=InlineKeyboards.main_menu(),
+                    parse_mode="HTML"
+                )
+            else:
+                await update.message.reply_text("❌ Failed to initialize user account. Please try again.")
+        else:
+            # Basic functionality without services
+            welcome_text = f"""
 👋 <b>Welcome to Family Emotions App, {update.effective_user.first_name}!</b>
 
 I'm here to help you understand and respond to your child's emotions better.
 
 🌟 <b>What I can do:</b>
 • Translate your child's emotional expressions
-• Provide age-appropriate response suggestions
+• Provide age-appropriate response suggestions  
 • Generate weekly emotional development reports
 • Track emotional patterns and growth
 
 Use /help to see all available commands!
+
+<i>Note: Full features are being initialized...</i>
 """
-        
-        await update.message.reply_text(
-            text=welcome_text,
-            parse_mode="HTML"
-        )
+            
+            await update.message.reply_text(
+                text=welcome_text,
+                parse_mode="HTML"
+            )
         
     except Exception as e:
         logger.error(f"Error in start handler: {e}")

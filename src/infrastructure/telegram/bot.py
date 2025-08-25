@@ -21,10 +21,10 @@ class FamilyEmotionsBot:
     
     def __init__(
         self,
-        user_service: UserService,
-        family_service: FamilyService,
-        emotion_service: EmotionService,
-        analytics_service: AnalyticsService
+        user_service: Optional[UserService] = None,
+        family_service: Optional[FamilyService] = None,
+        emotion_service: Optional[EmotionService] = None,
+        analytics_service: Optional[AnalyticsService] = None
     ):
         self.user_service = user_service
         self.family_service = family_service

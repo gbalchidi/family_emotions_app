@@ -96,7 +96,24 @@ class FamilyEmotionsApp:
             logger.info("Creating Telegram bot")
             self.bot_app = create_bot(self.emotion_analyzer)
             
-            setup_bot_commands(self.bot_app)
+            # Setup basic FamilyEmotionsBot with minimal services
+            try:
+                from src.infrastructure.telegram.bot import FamilyEmotionsBot
+                
+                # Create minimal service instances (will be improved with proper DI later)
+                family_bot = FamilyEmotionsBot(
+                    user_service=None,  # Will implement step by step
+                    family_service=None,
+                    emotion_service=None,
+                    analytics_service=None
+                )
+                
+                setup_bot_commands(self.bot_app, bot_instance=family_bot)
+                logger.info("Bot instance created successfully")
+                
+            except Exception as e:
+                logger.warning(f"Failed to create bot instance, using simple handlers: {e}")
+                setup_bot_commands(self.bot_app)
             
             # Start monitoring services
             logger.info("Starting monitoring services")
