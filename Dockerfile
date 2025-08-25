@@ -32,7 +32,7 @@ COPY requirements.txt .
 RUN pip install python-telegram-bot && \
     pip install fastapi uvicorn[standard] && \
     pip install pydantic pydantic-settings && \
-    pip install sqlalchemy alembic asyncpg && \
+    pip install sqlalchemy alembic asyncpg psycopg2-binary && \
     pip install redis && \
     pip install anthropic && \
     pip install supabase && \
