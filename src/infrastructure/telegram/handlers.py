@@ -373,6 +373,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Route message based on conversation state  
         if current_state == "ADD_CHILD_NAME":
+            logger.info(f"🎯 About to call handle_add_child_name with 4 args: update, bot, user_context, '{message_text}'")
             await handle_add_child_name(update, bot, user_context, message_text)
             
         elif current_state == "ADD_CHILD_AGE":
@@ -397,6 +398,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_add_child_name(update: Update, bot, user_context, name: str):
     """Handle child name input. FIXED SIGNATURE - 4 parameters including name."""
+    logger.info(f"🚀 NEW CODE RUNNING - handle_add_child_name called with name: {name}")
     try:
         if len(name.strip()) < 1:
             await update.message.reply_text(
