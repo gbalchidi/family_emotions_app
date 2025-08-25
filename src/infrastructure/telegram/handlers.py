@@ -364,13 +364,11 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_state = getattr(user_context, 'current_state', None)
         message_text = update.message.text
         
-        logger.info(f"User context: {user_context}")
         logger.info(f"Current state: {current_state}")
-        logger.info(f"User context methods: {dir(user_context)}")
         
         # Route message based on conversation state
         if current_state == "ADD_CHILD_NAME":
-            await handle_add_child_name(update, bot, message_text)
+            await handle_add_child_name(update, bot, user_context, message_text)
             
         elif current_state == "ADD_CHILD_AGE":
             await handle_add_child_age(update, bot, user_context, message_text)
@@ -389,7 +387,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Individual handler functions for different actions
 
-async def handle_add_child_name(update: Update, bot, name: str):
+async def handle_add_child_name(update: Update, bot, user_context, name: str):
     """Handle child name input."""
     try:
         if len(name.strip()) < 1:
@@ -398,7 +396,6 @@ async def handle_add_child_name(update: Update, bot, name: str):
             )
             return
         
-        user_context = bot.get_user_context(update.effective_user.id)
         user_context.temp_data["child_name"] = name.strip()
         user_context.current_state = "ADD_CHILD_AGE"
         
