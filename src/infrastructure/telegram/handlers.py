@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, date
 from typing import Optional
 from uuid import UUID
 
@@ -17,12 +16,8 @@ from telegram.ext import (
 
 from .keyboards import InlineKeyboards
 from .states import ConversationStates
-from ...core.models.user import UserRole
 from ...core.exceptions import (
-    RateLimitExceededError,
-    ResourceNotFoundError, 
-    ValidationError,
-    BusinessLogicError
+    RateLimitExceededError
 )
 
 logger = logging.getLogger(__name__)
@@ -371,13 +366,21 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         logger.info(f"Current state: {current_state}")
         
+        # Get user for consistent function signatures
+        user_result = await bot.get_or_create_user(update)
+        if not user_result:
+            await update.message.reply_text("❌ Unable to process your request. Please try again.")
+            return
+        
+        user, _ = user_result
+        
         # Route message based on conversation state  
         if current_state == "ADD_CHILD_NAME":
-            logger.info(f"🎯 About to call handle_add_child_name with 4 args: update, bot, user_context, '{message_text}'")
-            await handle_add_child_name(update, bot, user_context, message_text)
+            logger.info(f"Calling handle_add_child_name with consistent 5-arg signature")
+            await handle_add_child_name(update, bot, user, user_context, message_text)
             
         elif current_state == "ADD_CHILD_AGE":
-            await handle_add_child_age(update, bot, user_context, message_text)
+            await handle_add_child_age(update, bot, user, user_context, message_text)
             
         elif current_state == "EMOTION_TRANSLATE_INPUT":
             await handle_emotion_translate_input(update, bot, message_text)
@@ -396,9 +399,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Individual handler functions for different actions
 
-async def handle_add_child_name(update: Update, bot, user_context, name: str):
-    """Handle child name input. FIXED SIGNATURE - 4 parameters including name."""
-    logger.info(f"🚀 NEW CODE RUNNING - handle_add_child_name called with name: {name}")
+async def handle_add_child_name(update: Update, bot, user, user_context, name: str):
+    """Handle child name input. CONSISTENT SIGNATURE - 5 parameters including user."""
+    logger.info(f"Handle add child name called with name: {name}")
     try:
         if len(name.strip()) < 1:
             await update.message.reply_text(
@@ -419,8 +422,8 @@ async def handle_add_child_name(update: Update, bot, user_context, name: str):
         await update.message.reply_text("❌ Something went wrong. Please try again.")
 
 
-async def handle_add_child_age(update: Update, bot, user_context, age_text: str):
-    """Handle child age input."""
+async def handle_add_child_age(update: Update, bot, user, user_context, age_text: str):
+    """Handle child age input. CONSISTENT SIGNATURE - 5 parameters including user."""
     try:
         age = int(age_text.strip())
         if age < 0 or age > 18:
@@ -777,8 +780,8 @@ You have {len(user.children)} child(ren) in your profile:
     )
 
 
-async def handle_add_child_start(query, bot, user, user_context):
-    """Start adding a new child."""
+async def handle_add_child_start(update, bot, user, user_context):
+    """Start adding a new child. CONSISTENT SIGNATURE - uses update parameter."""
     user_context.clear()
     user_context.set_state(ConversationStates.ADD_CHILD_NAME)
     
@@ -790,13 +793,17 @@ What is your child's name?
 <i>Type the name below:</i>
 """
     
-    await query.edit_message_text(
-        text=text,
-        parse_mode="HTML"
-    )
-
-
-
+    # Handle both query and update objects
+    if hasattr(update, 'edit_message_text'):
+        await update.edit_message_text(
+            text=text,
+            parse_mode="HTML"
+        )
+    elif hasattr(update, 'message'):
+        await update.message.reply_text(
+            text=text,
+            parse_mode="HTML"
+        )
 
 
 async def handle_add_child_personality(update, bot, user, user_context, personality):
