@@ -493,7 +493,15 @@ async def handle_emotion_translate_input(update: Update, bot, message_text: str)
             from anthropic import Anthropic
             from src.core.config import settings
             
-            client = Anthropic(api_key=settings.anthropic.claude_api_key)
+            # Debug API key (mask most of it for security)
+            api_key = settings.anthropic.claude_api_key
+            if api_key:
+                masked_key = api_key[:10] + "***" + api_key[-4:] if len(api_key) > 14 else "***MASKED***"
+                logger.info(f"Using Claude API key: {masked_key}")
+            else:
+                logger.error("Claude API key is None or empty!")
+                
+            client = Anthropic(api_key=api_key)
             
             prompt = f"""You are an expert child psychologist helping parents understand their child's emotions. 
 

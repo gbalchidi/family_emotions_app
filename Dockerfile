@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    CACHE_BUST=v2024082502
+    CACHE_BUST=v2024082503
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
