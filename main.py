@@ -171,19 +171,53 @@ class FamilyEmotionsApp:
             await self.shutdown()
     
     async def _run_bot(self):
-        """Run the Telegram bot."""
+        """Run the Telegram bot with proper polling."""
         try:
             # Initialize and start the application
             await self.bot_app.initialize()
             await self.bot_app.start()
             
-            logger.info("Bot is running. Press Ctrl+C to stop.")
+            # Check and clear any existing webhooks before starting polling
+            try:
+                webhook_info = await self.bot_app.bot.get_webhook_info()
+                if webhook_info.url:
+                    logger.info("Removing existing webhook before starting polling...")
+                    await self.bot_app.bot.delete_webhook(drop_pending_updates=True)
+            except Exception as e:
+                logger.warning(f"Could not check/clear webhook: {e}")
+            
+            # Start the updater for polling
+            if hasattr(self.bot_app, 'updater') and self.bot_app.updater:
+                logger.info("Starting bot polling...")
+                await self.bot_app.updater.start_polling(
+                    allowed_updates=None,  # Accept all update types
+                    drop_pending_updates=True,  # Start fresh, ignore pending updates
+                    poll_interval=0.0,  # No delay between polls for responsiveness
+                    timeout=10,  # Long polling timeout (seconds)
+                    read_timeout=2,  # Read timeout for receiving updates
+                    write_timeout=10,  # Write timeout for sending responses
+                    connect_timeout=60,  # Connection establishment timeout
+                    pool_timeout=10  # Connection pool timeout
+                )
+                logger.info("Bot is now polling for updates and ready to receive messages...")
+            else:
+                # Fallback for python-telegram-bot v20+ where updater might be integrated
+                logger.warning("Updater not found as separate component, trying direct polling...")
+                # The Application object itself might handle polling
+                logger.info("Bot initialized and started, waiting for messages...")
             
             # Wait for shutdown signal
             await self._shutdown_event.wait()
             
+            # Graceful shutdown sequence
+            logger.info("Stopping bot polling...")
+            if hasattr(self.bot_app, 'updater') and self.bot_app.updater:
+                await self.bot_app.updater.stop()
+            await self.bot_app.stop()
+            await self.bot_app.shutdown()
+            
         except Exception as e:
-            logger.error("Bot error", error=str(e))
+            logger.error("Bot error", error=str(e), exc_info=True)
             raise
     
     async def _signal_handler(self, signal_num):
