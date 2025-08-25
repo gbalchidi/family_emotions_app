@@ -81,6 +81,7 @@ class FamilyEmotionsApp:
     def __init__(self):
         self.bot_app = None
         self.emotion_analyzer = None
+        self.db_manager = None
         self._shutdown_event = asyncio.Event()
     
     async def startup(self):
@@ -88,6 +89,12 @@ class FamilyEmotionsApp:
         logger.info("Starting Family Emotions App", version="0.1.0")
         
         try:
+            # Initialize database
+            logger.info("Initializing database connection")
+            from src.infrastructure.database.database import DatabaseManager
+            self.db_manager = DatabaseManager()
+            await self.db_manager.initialize()
+            
             # Initialize emotion analyzer
             logger.info("Initializing emotion analyzer")
             self.emotion_analyzer = EmotionAnalyzer()
@@ -96,24 +103,30 @@ class FamilyEmotionsApp:
             logger.info("Creating Telegram bot")
             self.bot_app = create_bot(self.emotion_analyzer)
             
-            # Setup basic FamilyEmotionsBot with minimal services
+            # Setup FamilyEmotionsBot with database services
             try:
                 from src.infrastructure.telegram.bot import FamilyEmotionsBot
                 
-                # Create minimal service instances (will be improved with proper DI later)
+                # Create bot instance and inject database manager
                 family_bot = FamilyEmotionsBot(
-                    user_service=None,  # Will implement step by step
+                    user_service=None,  # Will create on-demand
                     family_service=None,
                     emotion_service=None,
                     analytics_service=None
                 )
                 
+                # Inject database manager for service creation
+                family_bot.db_manager = self.db_manager
+                
                 setup_bot_commands(self.bot_app, bot_instance=family_bot)
-                logger.info("Bot instance created successfully")
+                logger.info("Bot instance created with database access")
                 
             except Exception as e:
-                logger.warning(f"Failed to create bot instance, using simple handlers: {e}")
-                setup_bot_commands(self.bot_app)
+                logger.warning(f"Failed to create bot instance with services: {e}")
+                # Fallback to minimal bot
+                from src.infrastructure.telegram.bot import FamilyEmotionsBot
+                family_bot = FamilyEmotionsBot()
+                setup_bot_commands(self.bot_app, bot_instance=family_bot)
             
             # Start monitoring services
             logger.info("Starting monitoring services")
@@ -143,6 +156,11 @@ class FamilyEmotionsApp:
                 logger.info("Stopping Telegram bot")
                 await self.bot_app.stop()
                 await self.bot_app.shutdown()
+            
+            # Close database
+            if self.db_manager:
+                logger.info("Closing database connections")
+                await self.db_manager.close()
             
             logger.info("Application shutdown completed")
             

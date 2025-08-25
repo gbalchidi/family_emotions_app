@@ -34,6 +34,9 @@ class FamilyEmotionsBot:
         # User conversation contexts
         self.user_contexts: Dict[int, UserContext] = {}
         
+        # Database manager (injected by main app)
+        self.db_manager = None
+        
         # Create application
         self.application = Application.builder().token(settings.telegram.bot_token).build()
         
@@ -53,6 +56,16 @@ class FamilyEmotionsBot:
         if user_id in self.user_contexts:
             del self.user_contexts[user_id]
     
+    async def get_user_service(self):
+        """Get UserService with database session."""
+        if not self.db_manager:
+            return None
+            
+        from ...core.services import UserService
+        # Get a raw session for the service (it will manage the session lifecycle)
+        session = await self.db_manager.get_raw_session()
+        return UserService(session)
+    
     async def get_or_create_user(self, update: Update) -> Optional[tuple]:
         """
         Get or create user from Telegram update.
@@ -65,14 +78,19 @@ class FamilyEmotionsBot:
             if not telegram_user:
                 return None
             
+            # Get user service
+            user_service = await self.get_user_service()
+            if not user_service:
+                return None
+            
             # Try to get existing user
-            user = await self.user_service.get_user_by_telegram_id(telegram_user.id)
+            user = await user_service.get_user_by_telegram_id(telegram_user.id)
             
             if user:
                 return user, False
             
             # Create new user
-            user = await self.user_service.create_user(
+            user = await user_service.create_user(
                 telegram_id=telegram_user.id,
                 first_name=telegram_user.first_name,
                 last_name=telegram_user.last_name,
@@ -80,17 +98,18 @@ class FamilyEmotionsBot:
                 language_code=telegram_user.language_code or "en"
             )
             
-            # Track new user registration
-            await self.analytics_service.track_event(
-                event_type="user_registration",
-                user_id=user.id,
-                user_telegram_id=user.telegram_id,
-                event_data={
-                    "username": user.username,
-                    "language": user.language_code,
-                    "registration_source": "telegram"
-                }
-            )
+            # Track new user registration (if analytics service available)
+            if self.analytics_service:
+                await self.analytics_service.track_event(
+                    event_type="user_registration",
+                    user_id=user.id,
+                    user_telegram_id=user.telegram_id,
+                    event_data={
+                        "username": user.username,
+                        "language": user.language_code,
+                        "registration_source": "telegram"
+                    }
+                )
             
             logger.info(f"Created new user: {user.id} (Telegram: {telegram_user.id})")
             return user, True
