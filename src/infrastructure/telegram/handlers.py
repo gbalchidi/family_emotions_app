@@ -57,6 +57,10 @@ Use /help to see all available commands!
         
         if bot:
             logger.info(f"Database manager available: {bot.db_manager is not None}")
+            if bot.db_manager:
+                logger.info(f"Database manager type: {type(bot.db_manager)}")
+            else:
+                logger.warning(f"Bot.db_manager is None - bot instance: {type(bot)}")
             
         if bot and bot.db_manager:
             try:
@@ -366,13 +370,20 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         logger.info(f"Current state: {current_state}")
         
-        # Get user for consistent function signatures
+        # Get user for consistent function signatures (with fallback for database issues)
         user_result = await bot.get_or_create_user(update)
         if not user_result:
-            await update.message.reply_text("❌ Unable to process your request. Please try again.")
-            return
-        
-        user, _ = user_result
+            # Database is unavailable, create a temporary user object for basic functionality
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id=f"temp_{update.effective_user.id}",
+                telegram_id=update.effective_user.id,
+                first_name=update.effective_user.first_name,
+                children=[]
+            )
+            logger.info(f"Using temporary user object for {update.effective_user.id} due to database unavailability")
+        else:
+            user, _ = user_result
         
         # Route message based on conversation state  
         if current_state == "ADD_CHILD_NAME":

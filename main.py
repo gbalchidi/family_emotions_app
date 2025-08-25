@@ -227,9 +227,9 @@ class FamilyEmotionsApp:
                 await self.bot_app.bot.delete_webhook(drop_pending_updates=True)
                 logger.info("Forced webhook deletion completed")
                 
-                # Give time for Telegram to process
+                # Give more time for Telegram to process and clear all conflicts
                 import asyncio
-                await asyncio.sleep(2)
+                await asyncio.sleep(10)  # Increased from 2 to 10 seconds
                 
                 # Check status
                 webhook_info = await self.bot_app.bot.get_webhook_info()
