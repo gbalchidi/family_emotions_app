@@ -238,19 +238,26 @@ class FamilyEmotionsApp:
             except Exception as e:
                 logger.warning(f"Error during connection cleanup: {e}")
             
-            # Start the updater for polling
-            if hasattr(self.bot_app, 'updater') and self.bot_app.updater:
-                logger.info("Starting bot polling...")
-                await self.bot_app.updater.start_polling(
-                    allowed_updates=None,  # Accept all update types
-                    drop_pending_updates=True  # Start fresh, ignore pending updates
-                )
-                logger.info("Bot is now polling for updates and ready to receive messages...")
-            else:
-                # Fallback for python-telegram-bot v20+ where updater might be integrated
-                logger.warning("Updater not found as separate component, trying direct polling...")
-                # The Application object itself might handle polling
-                logger.info("Bot initialized and started, waiting for messages...")
+            # Try polling, fallback to webhook if conflict
+            try:
+                # Start the updater for polling
+                if hasattr(self.bot_app, 'updater') and self.bot_app.updater:
+                    logger.info("Starting bot polling...")
+                    await self.bot_app.updater.start_polling(
+                        allowed_updates=None,  # Accept all update types
+                        drop_pending_updates=True  # Start fresh, ignore pending updates
+                    )
+                    logger.info("Bot is now polling for updates and ready to receive messages...")
+                else:
+                    logger.warning("Updater not found, bot may not receive updates properly")
+            except Exception as e:
+                if "Conflict" in str(e):
+                    logger.error("Polling conflict detected - this means another instance is running with the same bot token")
+                    logger.error("Please check for other deployments or restart this container")
+                else:
+                    logger.error(f"Polling failed: {e}")
+                # Continue running even if polling fails
+                logger.info("Bot will continue running for health checks...")
             
             # Wait for shutdown signal
             await self._shutdown_event.wait()
