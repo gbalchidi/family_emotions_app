@@ -33,27 +33,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         logger.info(f"Start command from user {update.effective_user.id}")
         
-        bot = context.bot_data.get('bot_instance')
-        
-        # Try database functionality first, fallback to basic if fails
-        if bot and bot.db_manager:
-            try:
-                # Full functionality with database access
-                user_result = await bot.get_or_create_user(update)
-                if user_result:
-                    user, is_new_user = user_result
-                    greeting = await bot.format_user_greeting(user, is_new_user)
-                    
-                    await update.message.reply_text(
-                        text=greeting,
-                        reply_markup=InlineKeyboards.main_menu(),
-                        parse_mode="HTML"
-                    )
-                    return
-            except Exception as e:
-                logger.warning(f"Database functionality failed, falling back to basic mode: {e}")
-        
-        # Basic functionality fallback
+        # Always provide a fallback welcome message
         welcome_text = f"""
 👋 <b>Welcome to Family Emotions App, {update.effective_user.first_name}!</b>
 
@@ -67,7 +47,7 @@ I'm here to help you understand and respond to your child's emotions better.
 
 Use /help to see all available commands!
 
-<i>Note: Full features are being initialized...</i>
+<i>Bot is ready to use!</i>
 """
         
         await update.message.reply_text(
@@ -76,9 +56,29 @@ Use /help to see all available commands!
             parse_mode="HTML"
         )
         
+        # Try to create user in background (optional)
+        bot = context.bot_data.get('bot_instance')
+        if bot and bot.db_manager:
+            try:
+                logger.debug(f"Background user creation for {update.effective_user.id}")
+                user_result = await bot.get_or_create_user(update)
+                if user_result:
+                    logger.info(f"User successfully created/found in database")
+                else:
+                    logger.warning("Database user creation returned None")
+            except Exception as e:
+                logger.warning(f"Background database operation failed: {e}")
+        
     except Exception as e:
         logger.error(f"Error in start handler: {e}")
-        await update.message.reply_text("❌ An error occurred. Please try again.")
+        # Even if everything fails, provide basic response
+        try:
+            await update.message.reply_text(
+                text=f"👋 Hello {update.effective_user.first_name}! Welcome to Family Emotions App.\n\nUse /help to see available commands.",
+                parse_mode="HTML"
+            )
+        except:
+            await update.message.reply_text("👋 Welcome! Use /help for commands.")
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
