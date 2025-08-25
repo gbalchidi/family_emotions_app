@@ -296,11 +296,16 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
             
         elif data == "emotion_translate":
+            # Start emotion translation flow
             await query.edit_message_text(
-                text="🌟 <b>Emotion Translation</b>\n\nAnalyze your child's emotions and get response suggestions.\n\n<i>Translation feature coming soon...</i>",
-                reply_markup=InlineKeyboards.main_menu(),
+                text="🌟 <b>Emotion Translation</b>\n\nDescribe what your child said or how they're behaving. Be as specific as possible.\n\n<b>Examples:</b>\n• \"My son said 'I hate you' and slammed his door\"\n• \"She's been very quiet and won't make eye contact\"\n• \"He's throwing toys and crying loudly\"\n\n<i>Please type your description below:</i>",
                 parse_mode="HTML"
             )
+            
+            # Set conversation state for emotion translation
+            if bot:
+                user_context = bot.get_user_context(update.effective_user.id)
+                user_context.current_state = "EMOTION_TRANSLATE_INPUT"
             
         elif data == "view_reports":
             await query.edit_message_text(
@@ -372,6 +377,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         elif current_state == "ADD_CHILD_AGE":
             await handle_add_child_age(update, bot, user_context, message_text)
+            
+        elif current_state == "EMOTION_TRANSLATE_INPUT":
+            await handle_emotion_translate_input(update, bot, message_text)
             
         else:
             # Default response for unexpected messages
@@ -450,6 +458,84 @@ What would you like to do next? 👇
         )
     except Exception as e:
         logger.error(f"Error handling child age: {e}")
+        await update.message.reply_text("❌ Something went wrong. Please try again.")
+
+
+async def handle_emotion_translate_input(update: Update, bot, message_text: str):
+    """Handle emotion translation input with Claude API."""
+    try:
+        user_context = bot.get_user_context(update.effective_user.id)
+        user_context.current_state = None  # Reset state
+        
+        # Show processing message
+        processing_msg = await update.message.reply_text(
+            text="🔄 <b>Analyzing emotions...</b>\n\nThis may take a few seconds.",
+            parse_mode="HTML"
+        )
+        
+        try:
+            # Call Claude API for emotion analysis
+            from anthropic import Anthropic
+            from src.core.config import settings
+            
+            client = Anthropic(api_key=settings.anthropic.claude_api_key)
+            
+            prompt = f"""You are an expert child psychologist helping parents understand their child's emotions. 
+
+Analyze this situation and provide:
+1. What emotions the child is likely experiencing
+2. Possible reasons behind these emotions
+3. 3 specific, age-appropriate response suggestions
+
+Situation: "{message_text}"
+
+Respond in this format:
+**Emotions detected:** [list emotions]
+**Possible reasons:** [brief explanation]
+**Suggested responses:**
+1. [First response approach]
+2. [Second response approach] 
+3. [Third response approach]
+
+Keep responses practical, empathetic, and focused on connection with the child."""
+
+            response = client.messages.create(
+                model=settings.anthropic.model,
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            result_text = f"""
+🎯 <b>Emotion Analysis Complete</b>
+
+📝 <b>Your situation:</b>
+<i>"{message_text}"</i>
+
+{response.content[0].text}
+
+💡 <b>Remember:</b> Every child is unique. Trust your instincts and adapt these suggestions to your child's personality and needs.
+
+What would you like to do next? 👇
+"""
+            
+            await processing_msg.edit_text(
+                text=result_text,
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            
+            logger.info(f"Emotion translation completed for user {update.effective_user.id}")
+            
+        except Exception as e:
+            logger.error(f"Error calling Claude API: {e}")
+            await processing_msg.edit_text(
+                text="❌ <b>Analysis failed</b>\n\nSorry, I couldn't analyze the emotions right now. Please try again later.\n\nThis could be due to:\n• API service temporarily unavailable\n• Network connection issues\n• Rate limiting\n\nPlease try again in a few moments.",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+        
+    except Exception as e:
+        logger.error(f"Error in emotion translation: {e}")
         await update.message.reply_text("❌ Something went wrong. Please try again.")
 
 async def handle_main_menu(query, bot, user):
