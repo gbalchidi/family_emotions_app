@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, 
     CommandHandler, 
@@ -318,11 +318,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
             
         elif data == "manage_family":
-            await query.edit_message_text(
-                text=f"👨‍👩‍👧‍👦 <b>{_('family.title')}</b>\n\n{_('family.description')}\n\n<i>{_('family.coming_soon')}</i>",
-                reply_markup=InlineKeyboards.main_menu(),
-                parse_mode="HTML"
-            )
+            await handle_family_management(query, bot, user)
             
         elif data == "add_child":
             # Start add child flow
@@ -335,6 +331,18 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             if bot:
                 user_context = bot.get_user_context(update.effective_user.id)
                 user_context.current_state = "ADD_CHILD_NAME"
+                
+        elif data == "family_list":
+            await handle_family_list(query, bot, user)
+            
+        elif data == "family_add":
+            await handle_family_add_start(query, bot, user)
+            
+        elif data == "family_permissions":
+            await handle_family_permissions(query, bot, user)
+            
+        elif data == "family_remove":
+            await handle_family_remove(query, bot, user)
             
         else:
             # Handle unknown callback
@@ -1049,19 +1057,174 @@ What do you need help with? 👇
 
 async def handle_family_management(query, bot, user):
     """Handle family management menu."""
+    from src.core.localization.translator import _
+    
+    family_count = len(user.family_members) if user.family_members else 0
     text = f"""
-👨‍👩‍👧‍👦 <b>Family Members</b>
+👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
 
-Share insights with family members and collaborate on child care.
+{_('family.description')}
 
-<b>Current Members:</b> {len(user.family_members)} + You
+<b>{_('family.current_members').format(count=family_count)}</b>
 
-What would you like to do? 👇
+Что вы хотите сделать? 👇
 """
     
     await query.edit_message_text(
         text=text,
         reply_markup=InlineKeyboards.family_management(),
+        parse_mode="HTML"
+    )
+
+
+async def handle_family_list(query, bot, user):
+    """Show list of family members."""
+    from src.core.localization.translator import _
+    
+    if not user.family_members:
+        text = f"""
+👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
+
+У вас пока нет дополнительных членов семьи.
+
+<b>Текущие участники:</b>
+👤 {user.first_name} (Вы) - Главный родитель
+
+Добавьте супруга/супругу или бабушку/дедушку, чтобы они могли помочь с анализом эмоций детей.
+"""
+    else:
+        members_list = []
+        for member in user.family_members:
+            role_emoji = "👨‍👩‍👧‍👦" if member.role == "parent" else "🧑‍🍼"
+            members_list.append(f"{role_emoji} {member.name} - {_('family.roles.' + member.role)}")
+        
+        text = f"""
+👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
+
+<b>Участники семьи:</b>
+👤 {user.first_name} (Вы) - Главный родитель
+
+{''.join(f'<br>{member}' for member in members_list)}
+
+Всего: {len(user.family_members) + 1} участник(ов)
+"""
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboards.family_management(),
+        parse_mode="HTML"
+    )
+
+
+async def handle_family_add_start(query, bot, user):
+    """Start adding a family member."""
+    text = f"""
+➕ <b>Добавить члена семьи</b>
+
+Чтобы добавить нового участника семьи:
+
+1. Попросите их написать боту @{bot.username if hasattr(bot, 'username') else 'family_emotions_bot'}
+2. Они должны отправить команду /start
+3. Затем дайте мне их имя пользователя или ID
+
+<b>Напишите имя пользователя нового участника:</b>
+<i>(например: @username или просто имя)</i>
+"""
+    
+    await query.edit_message_text(
+        text=text,
+        parse_mode="HTML"
+    )
+    
+    # Set conversation state
+    if bot:
+        user_context = bot.get_user_context(query.from_user.id)
+        user_context.set_state("ADD_FAMILY_MEMBER")
+
+
+async def handle_family_permissions(query, bot, user):
+    """Handle family permissions management."""
+    if not user.family_members:
+        text = """
+✏️ <b>Редактировать разрешения</b>
+
+У вас пока нет членов семьи для управления разрешениями.
+
+Сначала добавьте участников семьи, а затем сможете настроить их права доступа.
+"""
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboards.family_management(),
+            parse_mode="HTML"
+        )
+        return
+    
+    # Show members for permission editing
+    text = """
+✏️ <b>Редактировать разрешения</b>
+
+Выберите участника для настройки разрешений:
+"""
+    
+    # Create keyboard with family members
+    keyboard = []
+    for member in user.family_members:
+        keyboard.append([
+            InlineKeyboardButton(
+                f"👤 {member.name}", 
+                callback_data=f"edit_permissions_{member.id}"
+            )
+        ])
+    keyboard.append([
+        InlineKeyboardButton("🔙 Назад", callback_data="manage_family")
+    ])
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
+    )
+
+
+async def handle_family_remove(query, bot, user):
+    """Handle family member removal."""
+    if not user.family_members:
+        text = """
+🗑️ <b>Удалить участника</b>
+
+У вас нет дополнительных членов семьи для удаления.
+"""
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboards.family_management(),
+            parse_mode="HTML"
+        )
+        return
+    
+    text = """
+🗑️ <b>Удалить участника</b>
+
+⚠️ Выберите участника для удаления из семьи:
+
+<i>Внимание: Удаленный участник потеряет доступ к данным о ваших детях.</i>
+"""
+    
+    # Create keyboard with family members
+    keyboard = []
+    for member in user.family_members:
+        keyboard.append([
+            InlineKeyboardButton(
+                f"❌ {member.name}", 
+                callback_data=f"confirm_remove_{member.id}"
+            )
+        ])
+    keyboard.append([
+        InlineKeyboardButton("🔙 Назад", callback_data="manage_family")
+    ])
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
 
