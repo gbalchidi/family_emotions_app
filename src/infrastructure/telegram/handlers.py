@@ -271,7 +271,9 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
         user = None
         if bot and hasattr(bot, 'get_or_create_user'):
             try:
-                user = await bot.get_or_create_user(update.effective_user.id, update.effective_user)
+                result = await bot.get_or_create_user(update)
+                if result:
+                    user = result[0]  # get_or_create_user returns (user, is_new)
                 logger.info(f"User loaded for callback: {user.first_name if user else 'None'}")
             except Exception as e:
                 logger.error(f"Error loading user for callback: {e}")
