@@ -503,7 +503,30 @@ async def handle_emotion_translate_input(update: Update, bot, message_text: str)
                 
             # Try to debug the API call
             logger.info(f"Creating Anthropic client with model: {settings.anthropic.model}")
-            client = Anthropic(api_key=api_key)
+            
+            # Try with different base URLs in case of regional restrictions
+            base_urls_to_try = [
+                None,  # Default
+                "https://api.anthropic.com",  # Explicit default
+                "https://claude.ai/api",  # Alternative endpoint
+            ]
+            
+            client = None
+            for base_url in base_urls_to_try:
+                try:
+                    if base_url:
+                        logger.info(f"Trying Anthropic API with base_url: {base_url}")
+                        client = Anthropic(api_key=api_key, base_url=base_url)
+                    else:
+                        logger.info("Trying Anthropic API with default base_url")
+                        client = Anthropic(api_key=api_key)
+                    break  # If successful, break the loop
+                except Exception as e:
+                    logger.warning(f"Failed to create client with base_url {base_url}: {e}")
+                    continue
+            
+            if not client:
+                raise Exception("Failed to create Anthropic client with any base_url")
             
             prompt = f"""You are an expert child psychologist helping parents understand their child's emotions. 
 

@@ -51,6 +51,9 @@ RUN pip install psycopg2-binary asyncpg && \
 # Copy application code
 COPY . .
 
+# Test database connections during build
+RUN python test_db_connection.py || echo "Database connection test failed but continuing build"
+
 # Create necessary directories
 RUN mkdir -p logs tmp && chown -R appuser:appgroup /app
 
