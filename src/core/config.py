@@ -30,7 +30,9 @@ class DatabaseSettings(BaseSettings):
         """Get database URL."""
         if self.database_url:
             # If DATABASE_URL is provided, use it directly but ensure asyncpg driver
-            if self.database_url.startswith("postgresql://"):
+            if self.database_url.startswith("postgres://"):
+                return self.database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif self.database_url.startswith("postgresql://"):
                 return self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
             elif self.database_url.startswith("postgresql+asyncpg://"):
                 return self.database_url

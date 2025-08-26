@@ -511,22 +511,8 @@ async def handle_emotion_translate_input(update: Update, bot, message_text: str)
                 "https://claude.ai/api",  # Alternative endpoint
             ]
             
-            client = None
-            for base_url in base_urls_to_try:
-                try:
-                    if base_url:
-                        logger.info(f"Trying Anthropic API with base_url: {base_url}")
-                        client = Anthropic(api_key=api_key, base_url=base_url)
-                    else:
-                        logger.info("Trying Anthropic API with default base_url")
-                        client = Anthropic(api_key=api_key)
-                    break  # If successful, break the loop
-                except Exception as e:
-                    logger.warning(f"Failed to create client with base_url {base_url}: {e}")
-                    continue
-            
-            if not client:
-                raise Exception("Failed to create Anthropic client with any base_url")
+            # For now, just create default client - multiple base URLs don't help with 403 errors
+            client = Anthropic(api_key=api_key)
             
             prompt = f"""You are an expert child psychologist helping parents understand their child's emotions. 
 
@@ -577,7 +563,13 @@ What would you like to do next? 👇
             logger.info(f"Emotion translation completed for user {update.effective_user.id}")
             
         except Exception as e:
+            error_message = str(e)
             logger.error(f"Error calling Claude API: {e}")
+            
+            # Check if it's a 403 forbidden error
+            if "403" in error_message or "forbidden" in error_message.lower():
+                logger.warning("Claude API returning 403 Forbidden - likely IP/region restriction or API key issue")
+            
             # Provide fallback emotional analysis without Claude API
             fallback_analysis = f"""
 🎯 <b>Emotion Analysis (Fallback Mode)</b>
