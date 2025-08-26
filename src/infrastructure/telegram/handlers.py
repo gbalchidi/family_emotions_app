@@ -417,7 +417,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await handle_add_child_age(update, bot, user, user_context, message_text)
             
         elif current_state == "EMOTION_TRANSLATE_INPUT":
-            await handle_emotion_translate_input(update, bot, message_text)
+            await handle_emotion_translate_input(update, bot, user, user_context, message_text)
             
         else:
             # Default response for unexpected messages
@@ -498,7 +498,7 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
         await update.message.reply_text("❌ Something went wrong. Please try again.")
 
 
-async def handle_emotion_translate_input(update: Update, bot, message_text: str):
+async def handle_emotion_translate_input(update: Update, bot, user, user_context, message_text: str):
     """Handle emotion translation input with Claude API."""
     try:
         user_context = bot.get_user_context(update.effective_user.id)

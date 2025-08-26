@@ -149,13 +149,15 @@ class FamilyEmotionsBot:
                 if user_result:
                     user_id = user_result[0].id
             
-            await self.analytics_service.track_event(
-                event_type="error_occurred",
-                user_id=user_id,
-                user_telegram_id=telegram_id,
-                error_code="BOT_ERROR",
-                error_message=error_msg
-            )
+            # Track error analytics (if service available)
+            if self.analytics_service:
+                await self.analytics_service.track_event(
+                    event_type="error_occurred",
+                    user_id=user_id,
+                    user_telegram_id=telegram_id,
+                    error_code="BOT_ERROR",
+                    error_message=error_msg
+                )
             
             # Send error message to user
             if update and update.effective_chat:
