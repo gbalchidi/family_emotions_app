@@ -54,6 +54,43 @@ COPY . .
 # Test database connections during build
 RUN python test_db_connection.py || echo "Database connection test failed but continuing build"
 
+# Add database migration script
+COPY <<EOF /app/run_migrations.py
+#!/usr/bin/env python3
+"""Run database migrations on startup."""
+
+import asyncio
+import logging
+from alembic.config import Config
+from alembic import command
+from src.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+def run_migrations():
+    """Run Alembic migrations."""
+    try:
+        logger.info("Running database migrations...")
+        alembic_cfg = Config("alembic.ini")
+        
+        # Set the database URL for migrations
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.database.url.replace("postgresql+asyncpg://", "postgresql://"))
+        
+        # Run migrations
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Migration failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = run_migrations()
+    sys.exit(0 if success else 1)
+EOF
+
 # Create necessary directories
 RUN mkdir -p logs tmp && chown -R appuser:appgroup /app
 

@@ -97,6 +97,24 @@ class FamilyEmotionsApp:
             try:
                 await self.db_manager.initialize()
                 logger.info("Database connection established successfully")
+                
+                # Run migrations if database is available
+                try:
+                    logger.info("Running database migrations...")
+                    import subprocess
+                    result = subprocess.run([sys.executable, "run_migrations.py"], 
+                                          capture_output=True, text=True, timeout=30)
+                    
+                    if result.returncode == 0:
+                        logger.info("Database migrations completed successfully")
+                    else:
+                        logger.warning(f"Migration failed but continuing: {result.stderr}")
+                        
+                except subprocess.TimeoutExpired:
+                    logger.warning("Migration timed out, continuing without migrations")
+                except Exception as migration_error:
+                    logger.warning(f"Could not run migrations: {migration_error}")
+                    
             except Exception as db_error:
                 logger.warning(f"Database initialization failed, continuing without database: {db_error}")
                 self.db_manager = None
