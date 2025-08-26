@@ -12,6 +12,7 @@ from anthropic import AsyncAnthropic
 
 from ...core.config import settings
 from ...core.exceptions import ExternalServiceError, RateLimitExceededError
+from ...core.localization import get_cultural_context, Language
 
 logger = logging.getLogger(__name__)
 
@@ -123,75 +124,85 @@ class ClaudeService:
             )
     
     def _build_emotion_analysis_prompt(self, request: EmotionAnalysisRequest) -> str:
-        """Build the prompt for Claude emotion analysis."""
+        """Build culturally-adapted prompt for Claude emotion analysis."""
         
-        # Base context about the child
+        # Get cultural context for Russian audience
+        cultural_context = get_cultural_context(Language.RUSSIAN)
+        
+        # Base context about the child in Russian
         child_context = f"""
-Child Information:
-- Name: {request.child_name}
-- Age: {request.child_age} years old
+Информация о ребенке:
+- Имя: {request.child_name}
+- Возраст: {request.child_age} лет
 """
         
         if request.personality_traits:
-            child_context += f"- Personality traits: {request.personality_traits}\n"
+            child_context += f"- Особенности характера: {request.personality_traits}\n"
         
         if request.special_needs:
-            child_context += f"- Special considerations: {request.special_needs}\n"
+            child_context += f"- Особые потребности: {request.special_needs}\n"
         
         if request.interests:
-            child_context += f"- Interests: {request.interests}\n"
+            child_context += f"- Интересы: {request.interests}\n"
         
         # Situation context
         situation = ""
         if request.situation_context:
-            situation = f"\nSituation context: {request.situation_context}"
+            situation = f"\nКонтекст ситуации: {request.situation_context}"
         
-        # Main prompt
-        prompt = f"""You are an expert child psychologist and emotion translator. Your job is to help parents understand their child's emotions and provide appropriate responses.
+        # Culturally-adapted prompt for Russian families
+        prompt = f"""Вы - эксперт по детской психологии и переводчик эмоций, работающий с российскими семьями. Ваша задача - помочь родителям понять эмоции своих детей и дать подходящие советы.
+
+КУЛЬТУРНЫЙ КОНТЕКСТ:
+- Российский стиль воспитания: сочетание авторитетности и уважения
+- Умеренная прямота в общении
+- Практичные советы с эмпатией
+- Семейные ценности: смесь традиционных и современных подходов
 
 {child_context}
 
-Child's message or behavior: "{request.child_message}"{situation}
+Сообщение или поведение ребенка: "{request.child_message}"{situation}
 
-Please analyze this child's emotional state and provide:
+Пожалуйста, проанализируйте эмоциональное состояние этого ребенка и предоставьте:
 
-1. DETECTED EMOTIONS: List the primary emotions you detect (maximum 3)
-2. CONFIDENCE SCORE: Rate your confidence in this analysis from 0.1 to 1.0
-3. THREE RESPONSE OPTIONS: Provide exactly 3 different ways the parent could respond, each with:
-   - A brief title (5-10 words)
-   - The actual response text (age-appropriate)
-   - The emotional approach (validating, redirecting, teaching, etc.)
+1. ОБНАРУЖЕННЫЕ ЭМОЦИИ: Перечислите основные эмоции (максимум 3)
+2. ОЦЕНКА УВЕРЕННОСТИ: От 0.1 до 1.0
+3. ТРИ ВАРИАНТА ОТВЕТА: Предоставьте ровно 3 разных способа реагирования:
+   - Краткий заголовок (5-10 слов)
+   - Текст ответа (соответствующий возрасту)
+   - Эмоциональный подход (подтверждающий, перенаправляющий, обучающий)
 
-4. EXPLANATION: Brief explanation of why you identified these emotions and why these responses would be effective
+4. ОБЪЯСНЕНИЕ: Краткое объяснение определенных эмоций
 
-Consider the child's age and developmental stage. Responses should be:
-- Age-appropriate in language and concept
-- Emotionally validating
-- Practical for parents to use
-- Culturally sensitive
+Ответы должны быть:
+- Подходящими возрасту по языку и концепциям
+- Эмоционально поддерживающими
+- Практичными для родителей
+- Культурно приемлемыми для российских семей
+- Отражающими баланс авторитета и эмпатии
 
-Format your response as JSON:
+Оформите свой ответ как JSON на русском языке:
 {{
-  "emotions": ["emotion1", "emotion2", "emotion3"],
+  "emotions": ["эмоция1", "эмоция2", "эмоция3"],
   "confidence": 0.85,
   "responses": [
     {{
-      "title": "Validating Response",
-      "text": "I can see you're feeling...",
-      "approach": "validation"
+      "title": "Подтверждающий ответ",
+      "text": "Я вижу, что ты чувствуешь...",
+      "approach": "подтверждение"
     }},
     {{
-      "title": "Teaching Response", 
-      "text": "Let's talk about...",
-      "approach": "teaching"
+      "title": "Обучающий ответ", 
+      "text": "Давай поговорим о...",
+      "approach": "обучение"
     }},
     {{
-      "title": "Redirecting Response",
-      "text": "How about we try...",
-      "approach": "redirection"
+      "title": "Перенаправляющий ответ",
+      "text": "Как насчёт попробовать...",
+      "approach": "перенаправление"
     }}
   ],
-  "explanation": "The child appears to be experiencing... because..."
+  "explanation": "Ребенок, по-видимому, испытывает... потому что..."
 }}"""
         
         return prompt
@@ -277,40 +288,41 @@ Format your response as JSON:
             emotion_summary = self._summarize_emotions(emotion_data)
             checkin_summary = self._summarize_checkins(checkin_data)
             
-            prompt = f"""Generate a comprehensive weekly emotional development report for a child.
+            prompt = f"""Составьте подробный еженедельный отчёт об эмоциональном развитии ребёнка для российской семьи.
 
-Child Information:
-- Name: {child_name}
-- Age: {child_age} years old
-- Report Period: {period_start} to {period_end}
+Информация о ребёнке:
+- Имя: {child_name}
+- Возраст: {child_age} лет
+- Период отчёта: {period_start} - {period_end}
 
-Emotion Translation Data:
+Данные о переводе эмоций:
 {emotion_summary}
 
-Check-in Data:
+Данные проверок:
 {checkin_summary}
 
-Please create a report with the following sections:
+Пожалуйста, создайте отчёт со следующими разделами:
 
-1. EXECUTIVE SUMMARY: Brief overview of the child's emotional week
-2. EMOTIONAL TRENDS: Key patterns and trends observed
-3. INSIGHTS: Deep insights about the child's emotional development
-4. RECOMMENDATIONS: 3-5 specific recommendations for parents
-5. POSITIVE HIGHLIGHTS: Celebrate the child's emotional growth
+1. КРАТКОЕ РЕЗЮМЕ: Краткий обзор эмоциональной недели ребёнка
+2. ЭМОЦИОНАЛЬНЫЕ ТЕНДЕНЦИИ: Ключевые закономерности и тенденции
+3. ГЛУБОКИЕ НАБЛЮДЕНИЯ: Понимание эмоционального развития
+4. РЕКОМЕНДАЦИИ: 3-5 конкретных рекомендаций для родителей
+5. ПОЛОЖИТЕЛЬНЫЕ МОМЕНТЫ: Отметить эмоциональный рост ребёнка
 
-Make the report:
-- Positive and growth-focused
-- Practical for parents
-- Age-appropriate in recommendations
-- Evidence-based on the provided data
+Сделайте отчёт:
+- Позитивным и ориентированным на рост
+- Практичным для родителей
+- Подходящим для возраста в рекомендациях
+- Основанным на предоставленных данных
+- Культурно приемлемым для российских семей
 
-Format as JSON:
+Оформите как JSON на русском языке:
 {{
-  "summary": "Executive summary text...",
-  "trends": "Emotional trends analysis...",
-  "insights": "Deep insights text...",  
-  "recommendations": ["Recommendation 1", "Recommendation 2", ...],
-  "highlights": "Positive highlights text..."
+  "summary": "Краткое резюме...",
+  "trends": "Анализ эмоциональных тенденций...",
+  "insights": "Глубокие наблюдения...",  
+  "recommendations": ["Рекомендация 1", "Рекомендация 2", ...],
+  "highlights": "Положительные моменты..."
 }}"""
             
             response = await self._client.messages.create(

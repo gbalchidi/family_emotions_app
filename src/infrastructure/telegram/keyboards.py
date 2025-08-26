@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from ...core.models.user import Children, UserRole
+from ...core.localization import _
 
 
 class InlineKeyboards:
@@ -13,16 +14,16 @@ class InlineKeyboards:
         """Create main menu keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("🌟 Translate Emotions", callback_data="emotion_translate"),
-                InlineKeyboardButton("📊 Weekly Report", callback_data="view_reports")
+                InlineKeyboardButton(_('buttons.emotion_translate'), callback_data="emotion_translate"),
+                InlineKeyboardButton(_('buttons.weekly_report'), callback_data="view_reports")
             ],
             [
-                InlineKeyboardButton("👶 Manage Children", callback_data="manage_children"),
-                InlineKeyboardButton("👨‍👩‍👧‍👦 Family Members", callback_data="manage_family")
+                InlineKeyboardButton(_('buttons.manage_children'), callback_data="manage_children"),
+                InlineKeyboardButton(_('buttons.manage_family'), callback_data="manage_family")
             ],
             [
-                InlineKeyboardButton("⚙️ Settings", callback_data="settings"),
-                InlineKeyboardButton("❓ Help", callback_data="help")
+                InlineKeyboardButton(_('buttons.settings'), callback_data="settings"),
+                InlineKeyboardButton(_('buttons.help'), callback_data="help")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -32,15 +33,15 @@ class InlineKeyboards:
         """Create child management keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("➕ Add Child", callback_data="add_child"),
-                InlineKeyboardButton("📝 Edit Child", callback_data="edit_child")
+                InlineKeyboardButton(_('buttons.add_child'), callback_data="add_child"),
+                InlineKeyboardButton(_('buttons.edit_child'), callback_data="edit_child")
             ],
             [
-                InlineKeyboardButton("📈 Child Reports", callback_data="child_reports"),
-                InlineKeyboardButton("🗑️ Remove Child", callback_data="remove_child")
+                InlineKeyboardButton(_('buttons.child_reports'), callback_data="child_reports"),
+                InlineKeyboardButton(_('buttons.remove_child'), callback_data="remove_child")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -53,13 +54,13 @@ class InlineKeyboards:
         for child in children:
             keyboard.append([
                 InlineKeyboardButton(
-                    f"👶 {child.name} ({child.age} years)", 
+                    f"👶 {child.name} ({child.age} {_('common.years')})", 
                     callback_data=f"{action}_child_{child.id}"
                 )
             ])
         
         keyboard.append([
-            InlineKeyboardButton("🔙 Back", callback_data="manage_children")
+            InlineKeyboardButton(_('buttons.back'), callback_data="manage_children")
         ])
         
         return InlineKeyboardMarkup(keyboard)
@@ -69,14 +70,14 @@ class InlineKeyboards:
         """Create options for emotion translation."""
         keyboard = [
             [
-                InlineKeyboardButton("🎯 Quick Translation", callback_data="emotion_quick"),
-                InlineKeyboardButton("📝 Detailed Analysis", callback_data="emotion_detailed")
+                InlineKeyboardButton("🎯 Быстрый перевод", callback_data="emotion_quick"),
+                InlineKeyboardButton("📝 Подробный анализ", callback_data="emotion_detailed")
             ],
             [
-                InlineKeyboardButton("📚 Recent Translations", callback_data="emotion_history")
+                InlineKeyboardButton("📚 Последние переводы", callback_data="emotion_history")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -86,12 +87,12 @@ class InlineKeyboards:
         """Create actions for emotion translation results."""
         keyboard = [
             [
-                InlineKeyboardButton("📧 Share Results", callback_data=f"share_{translation_id}"),
-                InlineKeyboardButton("💾 Save to Report", callback_data=f"save_{translation_id}")
+                InlineKeyboardButton("📧 Поделиться результатами", callback_data=f"share_{translation_id}"),
+                InlineKeyboardButton("💾 Сохранить в отчёт", callback_data=f"save_{translation_id}")
             ],
             [
-                InlineKeyboardButton("🔄 New Translation", callback_data="emotion_translate"),
-                InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu")
+                InlineKeyboardButton("🔄 Новый перевод", callback_data="emotion_translate"),
+                InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -110,7 +111,7 @@ class InlineKeyboards:
             ])
         
         keyboard.append([
-            InlineKeyboardButton("🔙 Back to Results", callback_data="back_to_results")
+            InlineKeyboardButton("🔙 К результатам", callback_data="back_to_results")
         ])
         
         return InlineKeyboardMarkup(keyboard)
@@ -120,19 +121,19 @@ class InlineKeyboards:
         """Create settings menu keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("🌐 Language", callback_data="settings_language"),
-                InlineKeyboardButton("⏰ Timezone", callback_data="settings_timezone")
+                InlineKeyboardButton(_('settings.options.language'), callback_data="settings_language"),
+                InlineKeyboardButton(_('settings.options.timezone'), callback_data="settings_timezone")
             ],
             [
-                InlineKeyboardButton("🔔 Notifications", callback_data="settings_notifications"),
-                InlineKeyboardButton("💳 Subscription", callback_data="settings_subscription")
+                InlineKeyboardButton(_('settings.options.notifications'), callback_data="settings_notifications"),
+                InlineKeyboardButton(_('settings.options.subscription'), callback_data="settings_subscription")
             ],
             [
-                InlineKeyboardButton("📊 Usage Stats", callback_data="settings_usage"),
-                InlineKeyboardButton("🗑️ Delete Account", callback_data="settings_delete")
+                InlineKeyboardButton(_('settings.options.usage_stats'), callback_data="settings_usage"),
+                InlineKeyboardButton(_('settings.options.delete_account'), callback_data="settings_delete")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -154,7 +155,7 @@ class InlineKeyboards:
                 InlineKeyboardButton("🇨🇳 中文", callback_data="lang_zh")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")
+                InlineKeyboardButton("🔙 К настройкам", callback_data="settings")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -164,8 +165,8 @@ class InlineKeyboards:
         """Create confirmation keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("✅ Confirm", callback_data=confirm_action),
-                InlineKeyboardButton("❌ Cancel", callback_data=cancel_action)
+                InlineKeyboardButton(_('buttons.confirm'), callback_data=confirm_action),
+                InlineKeyboardButton(_('buttons.cancel'), callback_data=cancel_action)
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -175,15 +176,15 @@ class InlineKeyboards:
         """Create family management keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("➕ Add Family Member", callback_data="family_add"),
-                InlineKeyboardButton("👥 View Members", callback_data="family_list")
+                InlineKeyboardButton(_('family.actions.add_member'), callback_data="family_add"),
+                InlineKeyboardButton(_('family.actions.view_members'), callback_data="family_list")
             ],
             [
-                InlineKeyboardButton("✏️ Edit Permissions", callback_data="family_permissions"),
-                InlineKeyboardButton("🗑️ Remove Member", callback_data="family_remove")
+                InlineKeyboardButton(_('family.actions.edit_permissions'), callback_data="family_permissions"),
+                InlineKeyboardButton(_('family.actions.remove_member'), callback_data="family_remove")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -193,11 +194,11 @@ class InlineKeyboards:
         """Create user role selection keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("👨‍👩‍👧‍👦 Parent", callback_data="role_parent"),
-                InlineKeyboardButton("🧑‍🍼 Caregiver", callback_data="role_caregiver")
+                InlineKeyboardButton(_('family.roles.parent'), callback_data="role_parent"),
+                InlineKeyboardButton(_('family.roles.caregiver'), callback_data="role_caregiver")
             ],
             [
-                InlineKeyboardButton("🔙 Back", callback_data="manage_family")
+                InlineKeyboardButton(_('buttons.back'), callback_data="manage_family")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -207,19 +208,19 @@ class InlineKeyboards:
         """Create reports menu keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("📅 This Week", callback_data="report_week"),
-                InlineKeyboardButton("📆 This Month", callback_data="report_month")
+                InlineKeyboardButton(_('reports.timeframes.this_week'), callback_data="report_week"),
+                InlineKeyboardButton(_('reports.timeframes.this_month'), callback_data="report_month")
             ],
             [
-                InlineKeyboardButton("📊 Custom Range", callback_data="report_custom"),
-                InlineKeyboardButton("📈 Trends", callback_data="report_trends")
+                InlineKeyboardButton(_('reports.timeframes.custom'), callback_data="report_custom"),
+                InlineKeyboardButton(_('reports.timeframes.trends'), callback_data="report_trends")
             ],
             [
-                InlineKeyboardButton("📋 All Children", callback_data="report_all"),
-                InlineKeyboardButton("👶 Specific Child", callback_data="report_child_select")
+                InlineKeyboardButton(_('reports.children_options.all'), callback_data="report_all"),
+                InlineKeyboardButton(_('reports.children_options.specific'), callback_data="report_child_select")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -229,19 +230,19 @@ class InlineKeyboards:
         """Create help menu keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("🚀 Getting Started", callback_data="help_start"),
-                InlineKeyboardButton("❓ FAQ", callback_data="help_faq")
+                InlineKeyboardButton("🚀 Начало работы", callback_data="help_start"),
+                InlineKeyboardButton("❓ Частые вопросы", callback_data="help_faq")
             ],
             [
-                InlineKeyboardButton("💡 Tips & Tricks", callback_data="help_tips"),
-                InlineKeyboardButton("📧 Contact Support", callback_data="help_contact")
+                InlineKeyboardButton("💡 Советы и хитрости", callback_data="help_tips"),
+                InlineKeyboardButton("📧 Обратиться в поддержку", callback_data="help_contact")
             ],
             [
-                InlineKeyboardButton("🔄 Bot Commands", callback_data="help_commands"),
-                InlineKeyboardButton("🔒 Privacy Policy", callback_data="help_privacy")
+                InlineKeyboardButton("🔄 Команды бота", callback_data="help_commands"),
+                InlineKeyboardButton("🔒 Политика конфиденциальности", callback_data="help_privacy")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+                InlineKeyboardButton(_('buttons.back_main_menu'), callback_data="main_menu")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -251,15 +252,15 @@ class InlineKeyboards:
         """Create subscription options keyboard."""
         keyboard = [
             [
-                InlineKeyboardButton("⭐ Upgrade to Premium", callback_data="upgrade_premium"),
-                InlineKeyboardButton("📊 Current Usage", callback_data="usage_stats")
+                InlineKeyboardButton(_('settings.subscription_options.upgrade_premium'), callback_data="upgrade_premium"),
+                InlineKeyboardButton(_('settings.subscription_options.current_usage'), callback_data="usage_stats")
             ],
             [
-                InlineKeyboardButton("💳 Billing Info", callback_data="billing_info"),
-                InlineKeyboardButton("❌ Cancel Subscription", callback_data="cancel_subscription")
+                InlineKeyboardButton(_('settings.subscription_options.billing_info'), callback_data="billing_info"),
+                InlineKeyboardButton(_('settings.subscription_options.cancel_subscription'), callback_data="cancel_subscription")
             ],
             [
-                InlineKeyboardButton("🔙 Back to Settings", callback_data="settings")
+                InlineKeyboardButton("🔙 К настройкам", callback_data="settings")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -298,8 +299,8 @@ class InlineKeyboards:
         """Create skip button for optional fields."""
         keyboard = [
             [
-                InlineKeyboardButton("⏭️ Skip this step", callback_data="skip_optional"),
-                InlineKeyboardButton("🔙 Back", callback_data="back")
+                InlineKeyboardButton(_('buttons.skip'), callback_data="skip_optional"),
+                InlineKeyboardButton(_('buttons.back'), callback_data="back")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)

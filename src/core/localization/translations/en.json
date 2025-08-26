@@ -1,0 +1,36 @@
+{
+  "welcome": {
+    "title": "Welcome to Family Emotions App, {name}!",
+    "description": "I'm here to help you understand and respond to your child's emotions better.",
+    "features": {
+      "translate": "Translate your child's emotional expressions",
+      "suggestions": "Provide age-appropriate response suggestions", 
+      "reports": "Generate weekly emotional development reports",
+      "tracking": "Track emotional patterns and growth"
+    },
+    "help_command": "Use /help to see all available commands!",
+    "ready": "Bot is ready to use!"
+  },
+  "help": {
+    "title": "Family Emotions App Help"
+  },
+  "buttons": {
+    "emotion_translate": "🌟 Translate Emotions",
+    "weekly_report": "📊 Weekly Report",
+    "manage_children": "👶 Manage Children",
+    "manage_family": "👨‍👩‍👧‍👦 Family Members",
+    "settings": "⚙️ Settings",
+    "help": "❓ Help"
+  },
+  "validation": {
+    "name_required": "Please enter a valid name for your child.",
+    "name_invalid": "Name can only contain letters, spaces and hyphens",
+    "age_invalid": "Please enter a valid age between 0 and 18 years.",
+    "age_number": "Please enter a number for age.",
+    "message_required": "Please describe the situation with your child."
+  },
+  "common": {
+    "welcome": "Welcome",
+    "years": "years"
+  }
+}

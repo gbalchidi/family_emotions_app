@@ -358,7 +358,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     # Print startup info
-    print("🤖 Family Emotions Bot - BUILD v2024082504-ENV-FIX")
+    print("🇷🇺 Family Emotions Bot - BUILD v2024082505-RUSSIAN")
     print("==================================================")
     print(f"Environment: {settings.environment}")
     print(f"Log Level: DEBUG")

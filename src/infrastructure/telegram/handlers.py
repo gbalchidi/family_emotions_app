@@ -19,6 +19,7 @@ from .states import ConversationStates
 from ...core.exceptions import (
     RateLimitExceededError
 )
+from ...core.localization import _, Language, set_language
 
 logger = logging.getLogger(__name__)
 
@@ -28,21 +29,24 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         logger.info(f"Start command from user {update.effective_user.id}")
         
-        # Always provide a fallback welcome message
+        # Set language to Russian for target audience
+        set_language(Language.RUSSIAN)
+        
+        # Provide localized welcome message
         welcome_text = f"""
-👋 <b>Welcome to Family Emotions App, {update.effective_user.first_name}!</b>
+👋 <b>{_('welcome.title', name=update.effective_user.first_name)}</b>
 
-I'm here to help you understand and respond to your child's emotions better.
+{_('welcome.description')}
 
-🌟 <b>What I can do:</b>
-• Translate your child's emotional expressions
-• Provide age-appropriate response suggestions  
-• Generate weekly emotional development reports
-• Track emotional patterns and growth
+🌟 <b>Что я умею:</b>
+• {_('welcome.features.translate')}
+• {_('welcome.features.suggestions')}
+• {_('welcome.features.reports')}
+• {_('welcome.features.tracking')}
 
-Use /help to see all available commands!
+{_('welcome.help_command')}
 
-<i>Bot is ready to use!</i>
+<i>{_('welcome.ready')}</i>
 """
         
         await update.message.reply_text(
@@ -80,11 +84,11 @@ Use /help to see all available commands!
         # Even if everything fails, provide basic response
         try:
             await update.message.reply_text(
-                text=f"👋 Hello {update.effective_user.first_name}! Welcome to Family Emotions App.\n\nUse /help to see available commands.",
+                text=f"👋 {_('common.hello')} {update.effective_user.first_name}! {_('common.welcome')} Family Emotions App.\n\n{_('welcome.help_command')}",
                 parse_mode="HTML"
             )
         except:
-            await update.message.reply_text("👋 Welcome! Use /help for commands.")
+            await update.message.reply_text(f"👋 {_('common.welcome')}! {_('welcome.help_command')}")
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,32 +96,32 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         logger.info(f"Help command from user {update.effective_user.id}")
         
-        help_text = """
-❓ <b>Family Emotions App Help</b>
+        help_text = f"""
+❓ <b>{_('help.title')}</b>
 
-🌟 <b>Main Features:</b>
+🌟 <b>Основные функции:</b>
 
-<b>🎯 Emotion Translation</b>
-Describe your child's behavior or words, and I'll help you understand their emotions and suggest appropriate responses.
+<b>🎯 {_('help.features.emotion_translation.title')}</b>
+{_('help.features.emotion_translation.description')}
 
-<b>👶 Child Management</b>
-Add your children's profiles with age, personality traits, and interests for more personalized analysis.
+<b>👶 {_('help.features.child_management.title')}</b>
+{_('help.features.child_management.description')}
 
-<b>📊 Weekly Reports</b>
-Get comprehensive reports on your child's emotional development and patterns.
+<b>📊 {_('help.features.weekly_reports.title')}</b>
+{_('help.features.weekly_reports.description')}
 
-📱 <b>Available Commands:</b>
-/start - Welcome and main menu
-/help - Show this help message
-/settings - Bot settings (coming soon)
-/test - Test bot functionality
+📱 <b>{_('help.commands.title')}</b>
+/start - {_('help.commands.start')}
+/help - {_('help.commands.help')}
+/settings - {_('help.commands.settings')}
+/test - {_('help.commands.test')}
 
-💡 <b>Tips:</b>
-• Be specific when describing situations
-• Add context about your child's personality  
-• Use family sharing for consistent responses
+💡 <b>{_('help.tips.title')}</b>
+• {_('help.tips.specific')}
+• {_('help.tips.context')}
+• {_('help.tips.sharing')}
 
-Bot is currently in development mode.
+{_('help.development_mode')}
 """
         
         await update.message.reply_text(
@@ -127,7 +131,7 @@ Bot is currently in development mode.
         
     except Exception as e:
         logger.error(f"Error in help handler: {e}")
-        await update.message.reply_text("❌ An error occurred. Please try again.")
+        await update.message.reply_text(f"❌ {_('errors.generic')}")
 
 
 async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -136,13 +140,13 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Test command from user {update.effective_user.id}")
         
         await update.message.reply_text(
-            text="✅ <b>Bot is working!</b>\n\nPolling is active and commands are being received.",
+            text=f"✅ <b>{_('success.bot_working')}</b>\n\n{_('success.polling_active')}",
             parse_mode="HTML"
         )
         
     except Exception as e:
         logger.error(f"Error in test handler: {e}")
-        await update.message.reply_text("❌ Test failed.")
+        await update.message.reply_text(f"❌ {_('errors.test_failed')}")
 
 
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -179,19 +183,19 @@ async def children_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user, _ = user_result
         
         if not user.children:
-            text = """
-👶 <b>No children in your profile yet!</b>
+            text = f"""
+👶 <b>{_('child_management.no_children.title')}</b>
 
-Add your first child to get started with personalized emotion analysis.
+{_('child_management.no_children.description')}
 
-Click "Add Child" below to begin! 👇
+{_('child_management.no_children.cta')}
 """
         else:
-            text = f"👶 <b>Your Children ({len(user.children)})</b>\n\n"
+            text = f"👶 <b>{_('child_management.children_list.title', count=len(user.children))}</b>\n\n"
             for child in user.children:
-                text += f"• {child.name} ({child.age} years)\n"
+                text += f"• {child.name} ({child.age} {_('common.years')})\n"
             
-            text += "\nManage your children using the options below 👇"
+            text += f"\n{_('child_management.children_list.manage_text')}"
         
         await update.message.reply_text(
             text=text,
@@ -201,7 +205,7 @@ Click "Add Child" below to begin! 👇
         
     except Exception as e:
         logger.error(f"Error in children handler: {e}")
-        await bot.handle_error(update, context, "Failed to load children")
+        await bot.handle_error(update, context, "Не удалось загрузить детей")
 
 
 async def translate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -218,12 +222,12 @@ async def translate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Check if user has children
         if not user.children:
-            text = """
-⚠️ <b>Add a child first</b>
+            text = f"""
+⚠️ <b>{_('emotion_translation.no_children.title')}</b>
 
-To provide personalized emotion analysis, please add at least one child to your profile.
+{_('emotion_translation.no_children.description')}
 
-Click "Manage Children" below to get started! 👇
+{_('emotion_translation.no_children.cta')}
 """
             await update.message.reply_text(
                 text=text,
@@ -235,12 +239,12 @@ Click "Manage Children" below to get started! 👇
         # Start emotion translation flow
         user_context.set_state(ConversationStates.EMOTION_SELECT_CHILD)
         
-        text = """
-🎯 <b>Emotion Translation</b>
+        text = f"""
+🎯 <b>{_('emotion_translation.select_child.title')}</b>
 
-Which child would you like to analyze?
+{_('emotion_translation.select_child.prompt')}
 
-Select a child below to continue 👇
+{_('emotion_translation.select_child.cta')}
 """
         
         await update.message.reply_text(
@@ -251,7 +255,7 @@ Select a child below to continue 👇
         
     except Exception as e:
         logger.error(f"Error in translate handler: {e}")
-        await bot.handle_error(update, context, "Failed to start translation")
+        await bot.handle_error(update, context, "Не удалось начать перевод")
 
 
 async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,28 +272,28 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
         # Handle basic callbacks
         if data == "main_menu":
             await query.edit_message_text(
-                text=f"👋 <b>Welcome, {update.effective_user.first_name}!</b>\n\nWhat would you like to do today?",
+                text=f"👋 <b>{_('common.welcome')}, {update.effective_user.first_name}!</b>\n\nЧто вы хотели бы сделать сегодня?",
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )
             
         elif data == "manage_children":
             await query.edit_message_text(
-                text="👶 <b>Child Management</b>\n\nManage your children's profiles for personalized emotion analysis.\n\n<i>Feature coming soon...</i>",
+                text=f"👶 <b>Управление детьми</b>\n\nУправляйте профилями ваших детей для персонализированного анализа эмоций.\n\n<i>Функция скоро появится...</i>",
                 reply_markup=InlineKeyboards.child_management(),
                 parse_mode="HTML"
             )
             
         elif data == "help":
             await query.edit_message_text(
-                text="❓ <b>Help & Support</b>\n\nGet help with using the Family Emotions App.\n\n<i>Full help system coming soon...</i>",
+                text=f"❓ <b>Помощь и поддержка</b>\n\nПолучите помощь по использованию Family Emotions App.\n\n<i>Полная система помощи скоро появится...</i>",
                 reply_markup=InlineKeyboards.help_menu(),
                 parse_mode="HTML"
             )
             
         elif data == "settings":
             await query.edit_message_text(
-                text="⚙️ <b>Settings</b>\n\nConfigure your app preferences.\n\n<i>Settings panel coming soon...</i>",
+                text=f"⚙️ <b>{_('settings.title')}</b>\n\nНастройте предпочтения приложения.\n\n<i>Панель настроек скоро появится...</i>",
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )
@@ -297,7 +301,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
         elif data == "emotion_translate":
             # Start emotion translation flow
             await query.edit_message_text(
-                text="🌟 <b>Emotion Translation</b>\n\nDescribe what your child said or how they're behaving. Be as specific as possible.\n\n<b>Examples:</b>\n• \"My son said 'I hate you' and slammed his door\"\n• \"She's been very quiet and won't make eye contact\"\n• \"He's throwing toys and crying loudly\"\n\n<i>Please type your description below:</i>",
+                text=f"🌟 <b>Перевод эмоций</b>\n\nОпишите, что сказал ваш ребенок или как он себя ведет. Будьте максимально конкретными.\n\n<b>Примеры:</b>\n• \"Мой сын сказал 'Я тебя ненавижу' и хлопнул дверью\"\n• \"Она очень тихая и не смотрит в глаза\"\n• \"Он бросает игрушки и громко плачет\"\n\n<i>Пожалуйста, введите описание ниже:</i>",
                 parse_mode="HTML"
             )
             
@@ -308,14 +312,14 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             
         elif data == "view_reports":
             await query.edit_message_text(
-                text="📊 <b>Weekly Reports</b>\n\nView emotional development reports for your children.\n\n<i>Reports feature coming soon...</i>",
+                text=f"📊 <b>{_('reports.title')}</b>\n\n{_('reports.description')}\n\n<i>{_('reports.coming_soon')}</i>",
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )
             
         elif data == "manage_family":
             await query.edit_message_text(
-                text="👨‍👩‍👧‍👦 <b>Family Members</b>\n\nShare insights with family members.\n\n<i>Family sharing coming soon...</i>",
+                text=f"👨‍👩‍👧‍👦 <b>{_('family.title')}</b>\n\n{_('family.description')}\n\n<i>{_('family.coming_soon')}</i>",
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )
@@ -360,7 +364,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot = context.bot_data.get('bot_instance')
         if not bot:
             await update.message.reply_text(
-                text="🤔 I'm not sure what you mean. Use /start to get started!"
+                text=f"🤔 Я не понимаю, что вы имеете в виду. Нажмите /start, чтобы начать!"
             )
             return
         
@@ -399,13 +403,13 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             # Default response for unexpected messages
             await update.message.reply_text(
-                text="🤔 I'm not sure what you mean. Use the menu below to navigate:",
+                text=f"🤔 Я не понимаю, что вы имеете в виду. Используйте меню ниже для навигации:",
                 reply_markup=InlineKeyboards.main_menu()
             )
         
     except Exception as e:
         logger.error(f"Error in message handler: {e}", exc_info=True)
-        await update.message.reply_text("❌ An error occurred processing your message.")
+        await update.message.reply_text(f"❌ {_('errors.processing_failed')}")
 
 
 # Individual handler functions for different actions
@@ -416,7 +420,7 @@ async def handle_add_child_name(update: Update, bot, user, user_context, name: s
     try:
         if len(name.strip()) < 1:
             await update.message.reply_text(
-                text="⚠️ Please enter a valid name for your child."
+                text=f"⚠️ {_('validation.name_required')}"
             )
             return
         
@@ -424,13 +428,13 @@ async def handle_add_child_name(update: Update, bot, user, user_context, name: s
         user_context.current_state = "ADD_CHILD_AGE"
         
         await update.message.reply_text(
-            text=f"👶 <b>Adding {name}</b>\n\nHow old is {name}? Please enter their age in years (0-18).\n\n<i>Type the age below:</i>",
+            text=f"👶 <b>Добавляем {name}</b>\n\n{_('child_management.add_child.age_prompt', name=name)}\n\n<i>{_('child_management.add_child.age_input')}</i>",
             parse_mode="HTML"
         )
         
     except Exception as e:
         logger.error(f"Error handling child name: {e}")
-        await update.message.reply_text("❌ Something went wrong. Please try again.")
+        await update.message.reply_text(f"❌ {_('errors.something_wrong')}")
 
 
 async def handle_add_child_age(update: Update, bot, user, user_context, age_text: str):
@@ -439,7 +443,7 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
         age = int(age_text.strip())
         if age < 0 or age > 18:
             await update.message.reply_text(
-                text="⚠️ Please enter a valid age between 0 and 18 years."
+                text=f"⚠️ {_('validation.age_invalid')}"
             )
             return
         
@@ -447,16 +451,15 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
         user_context.temp_data["child_age"] = age
         user_context.current_state = None  # Reset state
         
-        # For now, just complete the process
+        # Complete the process with Russian text
         success_text = f"""
-✅ <b>Child Added Successfully!</b>
+✅ <b>{_('child_management.add_child.success.title')}</b>
 
-👶 <b>{name}</b>
-📅 <b>Age:</b> {age} years old
+{_('child_management.add_child.success.profile', name=name, age=age)}
 
-{name} has been added to your family profile! You can now get personalized emotion translations and analysis.
+{_('child_management.add_child.success.completion', name=name)}
 
-What would you like to do next? 👇
+{_('child_management.add_child.success.next_steps')}
 """
         
         await update.message.reply_text(
@@ -469,7 +472,7 @@ What would you like to do next? 👇
         
     except ValueError:
         await update.message.reply_text(
-            text="⚠️ Please enter a valid number for the age."
+            text=f"⚠️ {_('validation.age_number')}"
         )
     except Exception as e:
         logger.error(f"Error handling child age: {e}")
@@ -484,7 +487,7 @@ async def handle_emotion_translate_input(update: Update, bot, message_text: str)
         
         # Show processing message
         processing_msg = await update.message.reply_text(
-            text="🔄 <b>Analyzing emotions...</b>\n\nThis may take a few seconds.",
+            text=f"🔄 <b>{_('emotion_translation.processing.title')}</b>\n\n{_('emotion_translation.processing.description')}",
             parse_mode="HTML"
         )
         
@@ -542,16 +545,16 @@ Keep responses practical, empathetic, and focused on connection with the child."
             logger.info(f"Claude API response received, length: {len(response.content[0].text) if response.content else 0}")
             
             result_text = f"""
-🎯 <b>Emotion Analysis Complete</b>
+🎯 <b>{_('emotion_translation.result.title')}</b>
 
-📝 <b>Your situation:</b>
+📝 <b>{_('emotion_translation.result.situation')}</b>
 <i>"{message_text}"</i>
 
 {response.content[0].text}
 
-💡 <b>Remember:</b> Every child is unique. Trust your instincts and adapt these suggestions to your child's personality and needs.
+💡 <b>Помните:</b> {_('emotion_translation.result.remember')}
 
-What would you like to do next? 👇
+{_('emotion_translation.result.next_steps')}
 """
             
             await processing_msg.edit_text(
@@ -572,25 +575,25 @@ What would you like to do next? 👇
             
             # Provide fallback emotional analysis without Claude API
             fallback_analysis = f"""
-🎯 <b>Emotion Analysis (Fallback Mode)</b>
+🎯 <b>{_('emotion_translation.fallback.title')}</b>
 
-📝 <b>Your situation:</b>
+📝 <b>{_('emotion_translation.result.situation')}</b>
 <i>"{message_text}"</i>
 
-**Emotions detected:** Your child may be experiencing frustration, sadness, or feeling overwhelmed.
+**Обнаруженные эмоции:** {_('emotion_translation.fallback.emotions')}
 
-**Possible reasons:** Children often act out when they're struggling with big emotions they don't know how to express, need attention, or feel misunderstood.
+**Возможные причины:** {_('emotion_translation.fallback.reasons')}
 
-**Suggested responses:**
-1. **Listen first** - "I can see you're upset. Can you tell me what's bothering you?"
-2. **Validate feelings** - "It's okay to feel frustrated. Your feelings are important to me."
-3. **Set gentle boundaries** - "I understand you're angry, but let's find a better way to talk about this."
+**Предлагаемые ответы:**
+1. {_('emotion_translation.fallback.responses.listen')}
+2. {_('emotion_translation.fallback.responses.validate')}
+3. {_('emotion_translation.fallback.responses.boundaries')}
 
-💡 <b>Remember:</b> Every child is unique. Trust your instincts and adapt these suggestions to your child's personality and needs.
+💡 <b>Помните:</b> {_('emotion_translation.result.remember')}
 
-<i>Note: This is a basic analysis. Full AI-powered analysis is temporarily unavailable.</i>
+<i>{_('emotion_translation.fallback.note')}</i>
 
-What would you like to do next? 👇
+{_('emotion_translation.result.next_steps')}
 """
             
             await processing_msg.edit_text(
@@ -601,11 +604,11 @@ What would you like to do next? 👇
         
     except Exception as e:
         logger.error(f"Error in emotion translation: {e}")
-        await update.message.reply_text("❌ Something went wrong. Please try again.")
+        await update.message.reply_text(f"❌ {_('errors.something_wrong')}")
 
 async def handle_main_menu(query, bot, user):
     """Handle main menu display."""
-    greeting = f"👋 <b>Welcome, {user.first_name}!</b>\n\nWhat would you like to do today?"
+    greeting = f"👋 <b>{_('common.welcome')}, {user.first_name}!</b>\n\nЧто вы хотите сделать сегодня?"
     
     await query.edit_message_text(
         text=greeting,
