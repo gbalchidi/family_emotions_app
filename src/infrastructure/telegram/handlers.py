@@ -318,16 +318,9 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
             
         elif data == "emotion_translate":
-            # Start emotion translation flow
-            await query.edit_message_text(
-                text=f"🌟 <b>Перевод эмоций</b>\n\nОпишите, что сказал ваш ребенок или как он себя ведет. Будьте максимально конкретными.\n\n<b>Примеры:</b>\n• \"Мой сын сказал 'Я тебя ненавижу' и хлопнул дверью\"\n• \"Она очень тихая и не смотрит в глаза\"\n• \"Он бросает игрушки и громко плачет\"\n\n<i>Пожалуйста, введите описание ниже:</i>",
-                parse_mode="HTML"
-            )
-            
-            # Set conversation state for emotion translation
-            if bot:
-                user_context = bot.get_user_context(update.effective_user.id)
-                user_context.current_state = "EMOTION_TRANSLATE_INPUT"
+            # Start emotion translation flow - first select child
+            user_context = bot.get_user_context(update.effective_user.id)
+            await handle_emotion_translate_start(query, bot, user, user_context)
             
         elif data == "view_reports":
             await handle_view_reports(query, bot, user)
@@ -377,6 +370,12 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             # Handle individual child report
             child_id = data.split("_")[-1]
             await handle_individual_child_report(query, bot, user, child_id)
+            
+        elif data.startswith("translate_child_"):
+            # Handle child selection for emotion translation
+            child_id = data.split("_")[-1]
+            user_context = bot.get_user_context(update.effective_user.id)
+            await handle_child_selection_for_translation(query, bot, user, user_context, child_id)
             
         else:
             # Handle unknown callback
@@ -443,6 +442,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         elif current_state == "EMOTION_TRANSLATE_INPUT":
             await handle_emotion_translate_input(update, bot, user, user_context, message_text)
+            
+        elif current_state == ConversationStates.EMOTION_ENTER_MESSAGE:
+            await handle_emotion_message_input(update, bot, user, user_context, message_text)
+            
+        elif current_state == ConversationStates.EMOTION_ADD_CONTEXT:
+            await handle_emotion_context_input(update, bot, user, user_context, message_text)
             
         else:
             # Default response for unexpected messages
@@ -750,7 +755,8 @@ async def handle_child_selection_for_translation(query, bot, user, user_context,
             )
             return
         
-        user_context.selected_child_id = child_id
+        from uuid import UUID
+        user_context.selected_child_id = UUID(child_id)
         user_context.set_state(ConversationStates.EMOTION_ENTER_MESSAGE)
         
         text = f"""
@@ -787,7 +793,7 @@ async def handle_emotion_message_input(update, bot, user, user_context, message_
         child_id = user_context.selected_child_id
         child = None
         for c in user.children:
-            if str(c.id) == child_id:
+            if c.id == child_id:
                 child = c
                 break
         
