@@ -275,6 +275,13 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 if result:
                     user = result[0]  # get_or_create_user returns (user, is_new)
                 logger.info(f"User loaded for callback: {user.first_name if user else 'None'}")
+                if user:
+                    logger.info(f"User ID: {user.id}, telegram_id: {user.telegram_id}")
+                    logger.info(f"User children loaded: {hasattr(user, 'children')}")
+                    if hasattr(user, 'children') and user.children:
+                        logger.info(f"User has {len(user.children)} children: {[c.name for c in user.children]}")
+                    else:
+                        logger.info("User has no children or children not loaded")
             except Exception as e:
                 logger.error(f"Error loading user for callback: {e}")
         
@@ -1136,9 +1143,21 @@ async def handle_family_list(query, bot, user):
     """Show list of family members and children."""
     from src.core.localization.translator import _
     
+    logger.info(f"handle_family_list called for user {user.id}")
+    logger.info(f"User has children attribute: {hasattr(user, 'children')}")
+    logger.info(f"User has family_members attribute: {hasattr(user, 'family_members')}")
+    
     # Prepare lists
     family_members = user.family_members if hasattr(user, 'family_members') and user.family_members else []
     children = user.children if hasattr(user, 'children') and user.children else []
+    
+    logger.info(f"Family members count: {len(family_members)}")
+    logger.info(f"Children count: {len(children)}")
+    
+    if children:
+        logger.info(f"Children details: {[(child.name, child.age) for child in children]}")
+    else:
+        logger.info("No children found or children list is empty")
     
     text = f"""
 👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
@@ -1158,10 +1177,15 @@ async def handle_family_list(query, bot, user):
         text += f"\n\n<b>Дети в семье:</b>"
         for child in children:
             text += f"\n👶 {child.name} ({child.age} лет)"
+            logger.info(f"Added child to display: {child.name} ({child.age})")
+    else:
+        logger.info("No children to display - children list is empty")
     
     # Summary
     total_count = 1 + len(family_members) + len(children)
     text += f"\n\n<b>Всего участников:</b> {total_count}"
+    
+    logger.info(f"Final family list text length: {len(text)}")
     
     if not family_members and not children:
         text += f"\n\n<i>У вас пока нет дополнительных участников семьи.</i>"
