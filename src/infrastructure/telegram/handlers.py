@@ -286,6 +286,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 logger.error(f"Error loading user for callback: {e}")
         
         data = query.data
+        logger.info(f"Processing callback data: '{data}', type: {type(data)}")
         
         # Handle basic callbacks
         if data == "main_menu":
@@ -347,8 +348,13 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 user_context.current_state = "ADD_CHILD_NAME"
                 
         elif data == "child_reports":
-            logger.info(f"Handling child_reports callback, user={user}, bot={bot}")
-            await handle_child_reports(query, bot, user)
+            logger.info(f"Found child_reports condition! user={user}, bot={bot}")
+            try:
+                await handle_child_reports(query, bot, user)
+                logger.info("handle_child_reports completed successfully")
+            except Exception as e:
+                logger.error(f"Error in handle_child_reports: {e}", exc_info=True)
+                raise
                 
         elif data == "family_list":
             await handle_family_list(query, bot, user)
@@ -382,7 +388,8 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
         
     except Exception as e:
-        logger.error(f"Error in callback handler: {e}")
+        logger.error(f"Error in callback handler: {e}", exc_info=True)
+        logger.error(f"Failed on callback data: {query.data if query else 'no query'}")
         try:
             await query.edit_message_text(
                 text="❌ An error occurred. Please try again.",
