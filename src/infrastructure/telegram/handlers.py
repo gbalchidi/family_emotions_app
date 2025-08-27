@@ -346,6 +346,9 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 user_context = bot.get_user_context(update.effective_user.id)
                 user_context.current_state = "ADD_CHILD_NAME"
                 
+        elif data == "child_reports":
+            await handle_child_reports(query, bot, user)
+                
         elif data == "family_list":
             await handle_family_list(query, bot, user)
             
@@ -362,6 +365,11 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             # Handle different week reports
             weeks_back = int(data.split("_")[-1])
             await handle_view_reports_week(query, bot, user, weeks_back)
+            
+        elif data.startswith("child_report_"):
+            # Handle individual child report
+            child_id = data.split("_")[-1]
+            await handle_individual_child_report(query, bot, user, child_id)
             
         else:
             # Handle unknown callback
@@ -1352,6 +1360,250 @@ async def handle_family_remove(query, bot, user):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
+
+
+async def handle_child_reports(query, bot, user):
+    """Handle child-specific reports."""
+    from src.core.localization.translator import _
+    
+    try:
+        logger.info(f"handle_child_reports called for user {user.id if user else 'None'}")
+        
+        # Check if user is None
+        if not user:
+            logger.error("User is None in handle_child_reports")
+            await query.edit_message_text(
+                text="❌ <b>Ошибка</b>\n\nНе удалось загрузить данные пользователя.",
+                reply_markup=InlineKeyboards.child_management(),
+                parse_mode="HTML"
+            )
+            return
+            
+        logger.info(f"User has children attribute: {hasattr(user, 'children')}")
+        if hasattr(user, 'children'):
+            logger.info(f"Number of children: {len(user.children) if user.children else 0}")
+            if user.children:
+                logger.info(f"Children: {[f'{c.name} (age {c.age})' for c in user.children]}")
+        
+        # Check if user has children
+        if not user.children or len(user.children) == 0:
+            await query.edit_message_text(
+                text=f"""
+📊 <b>Отчеты о детях</b>
+
+❌ <b>У вас пока нет детей</b>
+
+Сначала добавьте профили детей через "Добавить ребенка", а затем сможете просматривать их индивидуальные отчеты.
+
+💡 <b>Что будет в отчетах:</b>
+• Индивидуальная статистика эмоций
+• Прогресс эмоционального развития
+• Персональные рекомендации
+• Сравнение с возрастными нормами
+""",
+                reply_markup=InlineKeyboards.child_management(),
+                parse_mode="HTML"
+            )
+            return
+    
+        # Show children selection for reports
+        text = f"""
+📊 <b>Отчеты о детях</b>
+
+Выберите ребенка для просмотра персонального отчета:
+
+💡 <b>В отчете вы увидите:</b>
+• Анализ эмоциональных паттернов
+• Динамику настроения
+• Рекомендации по развитию
+• Сравнение с предыдущими периодами
+"""
+        
+        # Create keyboard with children
+        keyboard = []
+        for child in user.children:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"📊 {child.name} ({child.age} лет)", 
+                    callback_data=f"child_report_{child.id}"
+                )
+            ])
+        
+        # Add back button
+        keyboard.append([
+            InlineKeyboardButton("🔙 Назад", callback_data="manage_children")
+        ])
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+    
+    except Exception as e:
+        logger.error(f"Error in handle_child_reports: {e}", exc_info=True)
+        await query.edit_message_text(
+            text="❌ <b>Ошибка</b>\n\nНе удалось загрузить отчеты.",
+            reply_markup=InlineKeyboards.child_management(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_individual_child_report(query, bot, user, child_id):
+    """Handle individual child report display."""
+    from uuid import UUID
+    from src.core.localization.translator import _
+    
+    try:
+        # Convert child_id to UUID
+        try:
+            child_uuid = UUID(child_id)
+        except ValueError:
+            await query.edit_message_text(
+                text="❌ <b>Ошибка</b>\n\nНеправильный идентификатор ребенка.",
+                reply_markup=InlineKeyboards.child_management(),
+                parse_mode="HTML"
+            )
+            return
+        
+        # Find the child
+        child = None
+        for c in user.children:
+            if c.id == child_uuid:
+                child = c
+                break
+                
+        if not child:
+            await query.edit_message_text(
+                text="❌ <b>Ребенок не найден</b>\n\nВозможно, профиль был удален.",
+                reply_markup=InlineKeyboards.child_management(),
+                parse_mode="HTML"
+            )
+            return
+        
+        # Generate individual child report
+        if bot and bot.db_manager:
+            async with bot.db_manager.get_session() as session:
+                from src.core.services import ReportService
+                report_service = ReportService(session)
+                
+                # Get emotion statistics for this child
+                emotion_stats = await report_service.get_weekly_report_data(user.id, weeks_back=0)
+                
+                # Filter data for specific child
+                child_activity = emotion_stats.get('child_activity', {}).get(child.name, 0)
+                
+                # Generate child-specific report
+                report_text = f"""
+📊 <b>Отчет о ребенке: {child.name}</b>
+📅 <i>За текущую неделю</i>
+
+👶 <b>Профиль:</b>
+• Возраст: {child.age} лет
+• Анализов эмоций: {child_activity}
+
+🎭 <b>Эмоциональная активность:</b>
+"""
+                
+                if child_activity > 0:
+                    # Get child-specific emotion translations
+                    from sqlalchemy import select, and_
+                    from src.core.models.emotion import EmotionTranslation, TranslationStatus
+                    from datetime import datetime, timezone, timedelta
+                    
+                    # Calculate current week boundaries
+                    today = datetime.now(timezone.utc).date()
+                    week_start = today - timedelta(days=today.weekday())
+                    week_end = week_start + timedelta(days=6)
+                    week_start_dt = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+                    week_end_dt = datetime.combine(week_end, datetime.max.time()).replace(tzinfo=timezone.utc)
+                    
+                    # Get translations for this specific child
+                    child_translations_stmt = (
+                        select(EmotionTranslation)
+                        .where(
+                            and_(
+                                EmotionTranslation.user_id == user.id,
+                                EmotionTranslation.child_id == child_uuid,
+                                EmotionTranslation.created_at >= week_start_dt,
+                                EmotionTranslation.created_at <= week_end_dt,
+                                EmotionTranslation.status == TranslationStatus.COMPLETED
+                            )
+                        )
+                    )
+                    child_translations_result = await session.execute(child_translations_stmt)
+                    child_translations = list(child_translations_result.scalars().all())
+                    
+                    if child_translations:
+                        # Count emotions for this child
+                        child_emotions = {}
+                        for translation in child_translations:
+                            if translation.translated_emotions:
+                                for emotion in translation.translated_emotions:
+                                    child_emotions[emotion] = child_emotions.get(emotion, 0) + 1
+                        
+                        if child_emotions:
+                            sorted_emotions = sorted(child_emotions.items(), key=lambda x: x[1], reverse=True)[:5]
+                            for emotion, count in sorted_emotions:
+                                report_text += f"• {emotion}: {count} раз\n"
+                        else:
+                            report_text += "• Эмоций пока не обнаружено\n"
+                            
+                        report_text += f"\n💡 <b>Наблюдения:</b>\n"
+                        if len(child_translations) >= 3:
+                            report_text += f"• Активное эмоциональное развитие у {child.name}!\n"
+                        else:
+                            report_text += f"• Попробуйте чаще анализировать эмоции {child.name}\n"
+                        
+                        if child_emotions:
+                            top_emotion = max(child_emotions.items(), key=lambda x: x[1])
+                            report_text += f"• Доминирующая эмоция: {top_emotion[0]}\n"
+                    else:
+                        report_text += "• Анализов эмоций пока не проводилось\n"
+                        report_text += f"\n💡 <b>Рекомендация:</b>\n• Начните анализировать эмоции {child.name} для создания отчета\n"
+                else:
+                    report_text += "• Анализов эмоций пока не проводилось\n"
+                    report_text += f"\n💡 <b>Рекомендация:</b>\n• Начните анализировать эмоции {child.name} для создания отчета\n"
+                
+                report_text += f"\n🌟 <b>Рекомендации для {child.name}:</b>\n"
+                report_text += "• Продолжайте регулярные беседы об эмоциях\n"
+                report_text += f"• Учитывайте возрастные особенности ({child.age} лет)\n"
+                if child.personality_traits:
+                    report_text += "• Помните об индивидуальных особенностях\n"
+                
+        else:
+            # Fallback when database is not available
+            report_text = f"""
+📊 <b>Отчет о ребенке: {child.name}</b>
+
+❌ <b>Сервис временно недоступен</b>
+
+К сожалению, сейчас не удается сгенерировать отчет из-за проблем с базой данных.
+
+Попробуйте позже.
+
+<i>Для генерации отчетов нужны данные об анализе эмоций.</i>
+"""
+        
+        # Create keyboard with back button
+        keyboard = [
+            [InlineKeyboardButton("🔙 К выбору детей", callback_data="child_reports")],
+            [InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")]
+        ]
+        
+        await query.edit_message_text(
+            text=report_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating individual child report: {e}")
+        await query.edit_message_text(
+            text=f"❌ <b>Ошибка при генерации отчета</b>\n\nПопробуйте позже.",
+            reply_markup=InlineKeyboards.child_management(),
+            parse_mode="HTML"
+        )
 
 
 async def handle_view_reports(query, bot, user):
