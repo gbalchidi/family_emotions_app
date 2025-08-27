@@ -347,6 +347,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 user_context.current_state = "ADD_CHILD_NAME"
                 
         elif data == "child_reports":
+            logger.info(f"Handling child_reports callback, user={user}, bot={bot}")
             await handle_child_reports(query, bot, user)
                 
         elif data == "family_list":
@@ -373,6 +374,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             
         else:
             # Handle unknown callback
+            logger.warning(f"Unknown callback data: {data}")
             await query.edit_message_text(
                 text="❌ Unknown action. Please try again.",
                 reply_markup=InlineKeyboards.main_menu(),
