@@ -329,11 +329,7 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
                 user_context.current_state = "EMOTION_TRANSLATE_INPUT"
             
         elif data == "view_reports":
-            await query.edit_message_text(
-                text=f"📊 <b>{_('reports.title')}</b>\n\n{_('reports.description')}\n\n<i>{_('reports.coming_soon')}</i>",
-                reply_markup=InlineKeyboards.main_menu(),
-                parse_mode="HTML"
-            )
+            await handle_view_reports(query, bot, user)
             
         elif data == "manage_family":
             await handle_family_management(query, bot, user)
@@ -361,6 +357,11 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             
         elif data == "family_remove":
             await handle_family_remove(query, bot, user)
+            
+        elif data.startswith("report_week_"):
+            # Handle different week reports
+            weeks_back = int(data.split("_")[-1])
+            await handle_view_reports_week(query, bot, user, weeks_back)
             
         else:
             # Handle unknown callback
@@ -1309,6 +1310,108 @@ async def handle_family_remove(query, bot, user):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="HTML"
     )
+
+
+async def handle_view_reports(query, bot, user):
+    """Handle weekly reports view."""
+    from src.core.localization.translator import _
+    
+    try:
+        # Generate weekly report
+        if bot and bot.db_manager:
+            async with bot.db_manager.get_session() as session:
+                from src.core.services import ReportService
+                report_service = ReportService(session)
+                
+                # Get current week report
+                report_text = await report_service.format_weekly_report(user.id, weeks_back=0)
+                
+                # Create keyboard with options for different weeks
+                from src.infrastructure.telegram.keyboards import InlineKeyboardBuilder
+                keyboard = InlineKeyboardBuilder()
+                keyboard.add_button("📅 Прошлая неделя", "report_week_1")
+                keyboard.add_button("📅 2 недели назад", "report_week_2") 
+                keyboard.add_button("🔙 Главное меню", "main_menu")
+                
+                await query.edit_message_text(
+                    text=report_text,
+                    reply_markup=keyboard.build(),
+                    parse_mode="HTML"
+                )
+                
+                logger.info(f"Weekly report generated for user {user.id}")
+                
+        else:
+            # Fallback when database is not available
+            report_text = f"""
+📊 <b>Еженедельные отчеты</b>
+
+❌ <b>Сервис временно недоступен</b>
+
+К сожалению, сейчас не удается сгенерировать отчет из-за проблем с базой данных.
+
+Попробуйте позже.
+
+<i>Для генерации отчетов нужны данные об анализе эмоций.</i>
+"""
+            await query.edit_message_text(
+                text=report_text,
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in handle_view_reports: {e}")
+        await query.edit_message_text(
+            text=f"📊 <b>Еженедельные отчеты</b>\n\n❌ Произошла ошибка при генерации отчета.\n\nПопробуйте позже.",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_view_reports_week(query, bot, user, weeks_back):
+    """Handle weekly reports for different weeks."""
+    from src.core.localization.translator import _
+    
+    try:
+        if bot and bot.db_manager:
+            async with bot.db_manager.get_session() as session:
+                from src.core.services import ReportService
+                report_service = ReportService(session)
+                
+                # Get report for specific week
+                report_text = await report_service.format_weekly_report(user.id, weeks_back=weeks_back)
+                
+                # Create keyboard with navigation
+                from src.infrastructure.telegram.keyboards import InlineKeyboardBuilder
+                keyboard = InlineKeyboardBuilder()
+                keyboard.add_button("📅 Текущая неделя", "view_reports")
+                if weeks_back == 1:
+                    keyboard.add_button("📅 2 недели назад", "report_week_2")
+                elif weeks_back == 2:
+                    keyboard.add_button("📅 Прошлая неделя", "report_week_1") 
+                keyboard.add_button("🔙 Главное меню", "main_menu")
+                
+                await query.edit_message_text(
+                    text=report_text,
+                    reply_markup=keyboard.build(),
+                    parse_mode="HTML"
+                )
+                
+        else:
+            await query.edit_message_text(
+                text="❌ Сервис отчетов временно недоступен",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in handle_view_reports_week: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при генерации отчета",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
 
 
 def setup_handlers(app_or_bot):
