@@ -1327,15 +1327,11 @@ async def handle_view_reports(query, bot, user):
                 report_text = await report_service.format_weekly_report(user.id, weeks_back=0)
                 
                 # Create keyboard with options for different weeks
-                from src.infrastructure.telegram.keyboards import InlineKeyboardBuilder
-                keyboard = InlineKeyboardBuilder()
-                keyboard.add_button("📅 Прошлая неделя", "report_week_1")
-                keyboard.add_button("📅 2 недели назад", "report_week_2") 
-                keyboard.add_button("🔙 Главное меню", "main_menu")
+                keyboard = InlineKeyboards.weekly_reports_navigation()
                 
                 await query.edit_message_text(
                     text=report_text,
-                    reply_markup=keyboard.build(),
+                    reply_markup=keyboard,
                     parse_mode="HTML"
                 )
                 
@@ -1383,18 +1379,11 @@ async def handle_view_reports_week(query, bot, user, weeks_back):
                 report_text = await report_service.format_weekly_report(user.id, weeks_back=weeks_back)
                 
                 # Create keyboard with navigation
-                from src.infrastructure.telegram.keyboards import InlineKeyboardBuilder
-                keyboard = InlineKeyboardBuilder()
-                keyboard.add_button("📅 Текущая неделя", "view_reports")
-                if weeks_back == 1:
-                    keyboard.add_button("📅 2 недели назад", "report_week_2")
-                elif weeks_back == 2:
-                    keyboard.add_button("📅 Прошлая неделя", "report_week_1") 
-                keyboard.add_button("🔙 Главное меню", "main_menu")
+                keyboard = InlineKeyboards.weekly_reports_navigation_specific(weeks_back)
                 
                 await query.edit_message_text(
                     text=report_text,
-                    reply_markup=keyboard.build(),
+                    reply_markup=keyboard,
                     parse_mode="HTML"
                 )
                 

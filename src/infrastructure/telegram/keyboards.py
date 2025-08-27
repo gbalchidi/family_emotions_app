@@ -226,6 +226,44 @@ class InlineKeyboards:
         return InlineKeyboardMarkup(keyboard)
     
     @staticmethod
+    def weekly_reports_navigation() -> InlineKeyboardMarkup:
+        """Create weekly reports navigation keyboard."""
+        keyboard = [
+            [
+                InlineKeyboardButton("📅 Прошлая неделя", callback_data="report_week_1"),
+                InlineKeyboardButton("📅 2 недели назад", callback_data="report_week_2")
+            ],
+            [
+                InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod  
+    def weekly_reports_navigation_specific(weeks_back: int) -> InlineKeyboardMarkup:
+        """Create weekly reports navigation for specific week."""
+        keyboard = []
+        
+        # Add navigation buttons
+        nav_row = []
+        if weeks_back != 0:
+            nav_row.append(InlineKeyboardButton("📅 Текущая неделя", callback_data="view_reports"))
+        if weeks_back == 1:
+            nav_row.append(InlineKeyboardButton("📅 2 недели назад", callback_data="report_week_2"))
+        elif weeks_back == 2:
+            nav_row.append(InlineKeyboardButton("📅 Прошлая неделя", callback_data="report_week_1"))
+        
+        if nav_row:
+            keyboard.append(nav_row)
+        
+        # Always add back to main menu
+        keyboard.append([
+            InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
     def help_menu() -> InlineKeyboardMarkup:
         """Create help menu keyboard."""
         keyboard = [
