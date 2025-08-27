@@ -79,41 +79,47 @@ class FamilyEmotionsBot:
             if not telegram_user:
                 return None
             
-            # Get user service
-            user_service = await self.get_user_service()
-            if not user_service:
+            if not self.db_manager:
                 return None
-            
-            # Try to get existing user
-            user = await user_service.get_user_by_telegram_id(telegram_user.id)
-            
-            if user:
-                return user, False
-            
-            # Create new user
-            user = await user_service.create_user(
-                telegram_id=telegram_user.id,
-                first_name=telegram_user.first_name,
-                last_name=telegram_user.last_name,
-                username=telegram_user.username,
-                language_code=telegram_user.language_code or "en"
-            )
-            
-            # Track new user registration (if analytics service available)
-            if self.analytics_service:
-                await self.analytics_service.track_event(
-                    event_type="user_registration",
-                    user_id=user.id,
-                    user_telegram_id=user.telegram_id,
-                    event_data={
-                        "username": user.username,
-                        "language": user.language_code,
-                        "registration_source": "telegram"
+                
+            # Use context manager to ensure session cleanup
+            async with self.db_manager.get_session() as session:
+                from ...core.services import UserService
+                user_service = UserService(session)
+                
+                # Try to get existing user with children loaded
+                user = await user_service.get_user_by_telegram_id(telegram_user.id)
+                
+                if user:
+                    # Make sure relationships are loaded
+                    await session.refresh(user)
+                    return user, False
+                
+                # Create new user
+                user = await user_service.create_user(
+                    telegram_id=telegram_user.id,
+                    first_name=telegram_user.first_name,
+                    last_name=telegram_user.last_name,
+                    username=telegram_user.username,
+                    language_code=telegram_user.language_code or "en"
+                )
+                
+                # Track new user registration (if analytics service available)
+                if self.analytics_service:
+                    await self.analytics_service.track_event(
+                        event_type="user_registration",
+                        user_id=user.id,
+                        user_telegram_id=user.telegram_id,
+                        event_data={
+                            "username": user.username,
+                            "language": user.language_code,
+                            "registration_source": "telegram"
+                        }
                     }
                 )
-            
-            logger.info(f"Created new user: {user.id} (Telegram: {telegram_user.id})")
-            return user, True
+                
+                logger.info(f"Created new user: {user.id} (Telegram ID: {telegram_user.id})")
+                return user, True
             
         except Exception as e:
             logger.error(f"Error getting/creating user: {e}")
