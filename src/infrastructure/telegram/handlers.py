@@ -1070,13 +1070,19 @@ async def handle_family_management(query, bot, user):
     """Handle family management menu."""
     from src.core.localization.translator import _
     
-    family_count = len(user.family_members) if user.family_members else 0
+    # Count all family members including children
+    family_members_count = len(user.family_members) if hasattr(user, 'family_members') and user.family_members else 0
+    children_count = len(user.children) if hasattr(user, 'children') and user.children else 0
+    total_family = family_members_count + children_count
+    
     text = f"""
 👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
 
 {_('family.description')}
 
-<b>{_('family.current_members').format(count=family_count)}</b>
+<b>Участники семьи:</b> {total_family} + Вы
+<i>• Взрослые участники: {family_members_count}
+• Дети: {children_count}</i>
 
 Что вы хотите сделать? 👇
 """
@@ -1089,36 +1095,39 @@ async def handle_family_management(query, bot, user):
 
 
 async def handle_family_list(query, bot, user):
-    """Show list of family members."""
+    """Show list of family members and children."""
     from src.core.localization.translator import _
     
-    if not user.family_members:
-        text = f"""
-👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
-
-У вас пока нет дополнительных членов семьи.
-
-<b>Текущие участники:</b>
-👤 {user.first_name} (Вы) - Главный родитель
-
-Добавьте супруга/супругу или бабушку/дедушку, чтобы они могли помочь с анализом эмоций детей.
-"""
-    else:
-        members_list = []
-        for member in user.family_members:
-            role_emoji = "👨‍👩‍👧‍👦" if member.role == "parent" else "🧑‍🍼"
-            members_list.append(f"{role_emoji} {member.name} - {_('family.roles.' + member.role)}")
-        
-        text = f"""
+    # Prepare lists
+    family_members = user.family_members if hasattr(user, 'family_members') and user.family_members else []
+    children = user.children if hasattr(user, 'children') and user.children else []
+    
+    text = f"""
 👨‍👩‍👧‍👦 <b>{_('family.title')}</b>
 
 <b>Участники семьи:</b>
 👤 {user.first_name} (Вы) - Главный родитель
-
-{''.join(f'<br>{member}' for member in members_list)}
-
-Всего: {len(user.family_members) + 1} участник(ов)
 """
+    
+    # Add adult family members
+    if family_members:
+        for member in family_members:
+            role_emoji = "👨‍👩‍👧‍👦" if member.role == "parent" else "🧑‍🍼"
+            text += f"\n{role_emoji} {member.name} - {_('family.roles.' + member.role)}"
+    
+    # Add children
+    if children:
+        text += f"\n\n<b>Дети в семье:</b>"
+        for child in children:
+            text += f"\n👶 {child.name} ({child.age} лет)"
+    
+    # Summary
+    total_count = 1 + len(family_members) + len(children)
+    text += f"\n\n<b>Всего участников:</b> {total_count}"
+    
+    if not family_members and not children:
+        text += f"\n\n<i>У вас пока нет дополнительных участников семьи.</i>"
+        text += f"\n\nДобавьте супруга/супругу или детей для совместной работы с эмоциональным анализом."
     
     await query.edit_message_text(
         text=text,
