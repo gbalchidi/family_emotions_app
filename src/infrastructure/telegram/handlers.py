@@ -869,7 +869,11 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                             status=TranslationStatus.COMPLETED,  # Mark as completed for now
                             translated_emotions=["curious", "excited"],  # Mock data
                             confidence_score=0.8,
-                            processing_time_ms=100
+                            processing_time_ms=100,
+                            response_options=[
+                                {"title": "Validate Feelings", "text": "I see you're feeling curious! That's a wonderful quality.", "approach": "Emotional validation"},
+                                {"title": "Encourage Learning", "text": "You seem excited to learn more. What would you like to explore next?", "approach": "Learning encouragement"}
+                            ]
                         )
                         
                         session.add(translation)
@@ -895,11 +899,16 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                 translation.status = TranslationStatus.COMPLETED
                 translation.translated_emotions = ["happy", "curious"]
                 translation.confidence_score = 0.75
+                translation.response_options = [
+                    {"title": "Validate Feelings", "text": "I see you're feeling happy! That's wonderful.", "approach": "Emotional validation"},
+                    {"title": "Encourage Exploration", "text": "You seem curious about something. Tell me more about what interests you!", "approach": "Curiosity encouragement"}
+                ]
+                translation.processing_time_ms = 120
             
             # Get child for display
             child = None
             for c in user.children:
-                if str(c.id) == child_id:
+                if c.id == child_id:  # child_id is already a UUID
                     child = c
                     break
             

@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    CACHE_BUST=v20250827-child-reports-fix
+    CACHE_BUST=v20250827-emotion-display-fix
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
