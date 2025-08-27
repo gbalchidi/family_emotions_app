@@ -470,8 +470,22 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
         user_context.temp_data["child_age"] = age
         user_context.current_state = None  # Reset state
         
-        # Complete the process with Russian text
-        success_text = f"""
+        # Save child to database
+        try:
+            if bot.db_manager:
+                async with bot.db_manager.get_session() as session:
+                    from src.core.services import FamilyService
+                    family_service = FamilyService(session)
+                    
+                    # Add child to database
+                    child = await family_service.add_child(
+                        parent_id=user.id,
+                        name=name,
+                        age=age
+                    )
+                    logger.info(f"Child {name} ({age}) saved to database with ID {child.id}")
+                    
+                    success_text = f"""
 ✅ <b>{_('child_management.add_child.success.title')}</b>
 
 {_('child_management.add_child.success.profile', name=name, age=age)}
@@ -480,6 +494,30 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
 
 {_('child_management.add_child.success.next_steps')}
 """
+                    
+            else:
+                # Database not available - store in memory only
+                logger.warning("Database not available - child will only be stored temporarily")
+                success_text = f"""
+✅ <b>Ребенок добавлен временно</b>
+
+👶 <b>Имя:</b> {name}
+🎂 <b>Возраст:</b> {age} лет
+
+⚠️ <i>База данных недоступна. Данные сохранены временно.</i>
+
+Используйте меню ниже для продолжения:
+"""
+                
+        except Exception as db_error:
+            logger.error(f"Failed to save child to database: {db_error}")
+            success_text = f"""
+❌ <b>Ошибка сохранения</b>
+
+Не удалось сохранить информацию о ребенке {name} в базу данных.
+
+Попробуйте еще раз позже.
+"""
         
         await update.message.reply_text(
             text=success_text,
@@ -487,7 +525,7 @@ async def handle_add_child_age(update: Update, bot, user, user_context, age_text
             parse_mode="HTML"
         )
         
-        logger.info(f"Child {name} ({age}) added successfully")
+        logger.info(f"Child {name} ({age}) processing completed")
         
     except ValueError:
         await update.message.reply_text(
