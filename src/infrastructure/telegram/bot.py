@@ -220,7 +220,8 @@ Use the menu below to continue 👇
     ) -> str:
         """Format emotion translation results for display."""
         if not translation.translated_emotions:
-            return "❌ <b>Translation failed</b>\n\nPlease try again later."
+            from ...core.localization.translator import _
+            return f"❌ <b>{_('emotion_translation.limits.translation_failed')}</b>\n\n{_('emotion_translation.limits.translation_failed_description')}"
         
         emotions_text = ", ".join(translation.translated_emotions)
         confidence_text = f"{translation.confidence_score * 100:.0f}%"

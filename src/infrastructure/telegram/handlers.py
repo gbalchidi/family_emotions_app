@@ -805,18 +805,14 @@ async def handle_emotion_message_input(update, bot, user, user_context, message_
             return
         
         text = f"""
-📝 <b>Message recorded for {child.name}:</b>
-<i>"{message_text}"</i>
+📝 <b>{_('emotion_translation.context_prompt.title').format(child_name=child.name)}</b>
+<i>{_('emotion_translation.context_prompt.message').format(message=message_text)}</i>
 
-Would you like to add any additional context about the situation? This helps me provide better analysis.
+{_('emotion_translation.context_prompt.description')}
 
-For example:
-• What happened before this?
-• Where did this occur?
-• Was anyone else involved?
-• Any special circumstances?
+{_('emotion_translation.context_prompt.examples')}
 
-<b>Type additional context or send "skip" to continue:</b>
+<b>{_('emotion_translation.context_prompt.input')}</b>
 """
         
         await update.message.reply_text(
@@ -867,7 +863,7 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                         
                         translation = EmotionTranslation(
                             user_id=user.id,
-                            child_id=UUID(child_id),
+                            child_id=child_id,  # child_id is already a UUID
                             original_message=emotion_message,
                             situation_context=situation_context,
                             status=TranslationStatus.COMPLETED,  # Mark as completed for now
@@ -893,7 +889,7 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                 translation = EmotionTranslation()
                 translation.id = uuid4()
                 translation.user_id = user.id
-                translation.child_id = UUID(child_id)
+                translation.child_id = child_id  # child_id is already a UUID
                 translation.original_message = emotion_message
                 translation.situation_context = situation_context
                 translation.status = TranslationStatus.COMPLETED
@@ -933,7 +929,7 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
         except Exception as e:
             logger.error(f"Error processing translation: {e}")
             await processing_msg.edit_text(
-                text="❌ <b>Translation failed</b>\n\nPlease try again later or contact support if the problem persists.",
+                text=f"❌ <b>{_('emotion_translation.limits.translation_failed')}</b>\n\n{_('emotion_translation.limits.translation_failed_description')}",
                 reply_markup=InlineKeyboards.main_menu(),
                 parse_mode="HTML"
             )
