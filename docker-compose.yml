@@ -3,7 +3,10 @@ version: '3.8'
 services:
   # Main application
   app:
-    build: .
+    build:
+      context: .
+      no_cache: true
+    image: family_emotions_app:v20250827-child-reports-fix
     container_name: family_emotions_app
     environment:
       - ENVIRONMENT=production
