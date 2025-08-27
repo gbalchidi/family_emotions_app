@@ -116,7 +116,6 @@ class FamilyEmotionsBot:
                             "registration_source": "telegram"
                         }
                     )
-                )
                 
                 logger.info(f"Created new user: {user.id} (Telegram ID: {telegram_user.id})")
                 return user, True
