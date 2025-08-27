@@ -82,6 +82,27 @@ class ReportService:
         translations_result = await self._session.execute(translations_stmt)
         translations = list(translations_result.scalars().all())
         
+        logger.info(f"Found {len(translations)} completed translations for user {user_id} in week {week_start} to {week_end}")
+        
+        # Also check for ANY translations (regardless of status) for debugging
+        all_translations_stmt = (
+            select(EmotionTranslation)
+            .where(
+                and_(
+                    EmotionTranslation.user_id == user_id,
+                    EmotionTranslation.created_at >= week_start_dt,
+                    EmotionTranslation.created_at <= week_end_dt
+                )
+            )
+        )
+        all_translations_result = await self._session.execute(all_translations_stmt)
+        all_translations = list(all_translations_result.scalars().all())
+        
+        logger.info(f"Found {len(all_translations)} total translations (any status) for user {user_id}")
+        if all_translations:
+            for trans in all_translations:
+                logger.info(f"Translation {trans.id}: status={trans.status}, created_at={trans.created_at}, emotions={trans.translated_emotions}")
+        
         # Get checkins for the week
         checkins_stmt = (
             select(Checkin)
