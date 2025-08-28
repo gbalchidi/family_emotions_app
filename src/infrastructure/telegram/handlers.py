@@ -1943,15 +1943,19 @@ async def handle_confirm_remove_child(query, bot, user, child_id):
         # Remove child from database
         if bot and bot.db_manager:
             async with bot.db_manager.get_session() as session:
-                from src.core.services import FamilyService
+                from src.core.services import FamilyService, UserService
                 family_service = FamilyService(session)
+                user_service = UserService(session)
                 
                 # This will also cascade delete all related emotion translations
                 await family_service.remove_child(child_uuid, user.id)
                 await session.commit()
                 
-                # Refresh user to get updated children list
-                await session.refresh(user)
+                # Get fresh user from database instead of refreshing old object
+                fresh_user = await user_service.get_user_by_id(user.id)
+                if fresh_user:
+                    # Update the user's children list locally
+                    user.children = fresh_user.children
                 
             text = f"✅ <b>Профиль удален</b>\n\n"
             text += f"Профиль <b>{child_name}</b> и все связанные данные успешно удалены.\n\n"
