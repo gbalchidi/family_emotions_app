@@ -6,7 +6,7 @@ services:
     build:
       context: .
       no_cache: true
-    image: family_emotions_app:v20250828-remove-session-fix
+    image: family_emotions_app:v20250828-claude-api-integration
     container_name: family_emotions_app
     environment:
       - ENVIRONMENT=production

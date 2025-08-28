@@ -877,9 +877,63 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                     user_service = UserService(session)
                     claude_service = ClaudeService()  # May not work due to API restrictions
                     
-                    # Create a simplified emotion service or fallback
+                    # Try to use real Claude API first
                     try:
-                        # Try to create emotion translation record directly
+                        # Get child for API request
+                        child = None
+                        for c in user.children:
+                            if c.id == child_id:
+                                child = c
+                                break
+                        
+                        if not child:
+                            raise Exception("Child not found")
+                        
+                        # Create request for Claude API
+                        from src.infrastructure.external.claude_service import EmotionAnalysisRequest
+                        
+                        analysis_request = EmotionAnalysisRequest(
+                            child_message=emotion_message,
+                            child_age=child.age,
+                            child_name=child.name,
+                            situation_context=situation_context,
+                            personality_traits=child.personality_traits,
+                            special_needs=child.special_needs,
+                            interests=child.interests
+                        )
+                        
+                        logger.info(f"Sending request to Claude API for child {child.name}")
+                        
+                        # Call Claude API
+                        analysis_result = await claude_service.analyze_child_emotions(analysis_request)
+                        
+                        logger.info(f"Claude API responded with emotions: {analysis_result.detected_emotions}")
+                        
+                        # Create emotion translation with real API results
+                        from src.core.models.emotion import EmotionTranslation, TranslationStatus
+                        
+                        translation = EmotionTranslation(
+                            user_id=user.id,
+                            child_id=child_id,
+                            original_message=emotion_message,
+                            situation_context=situation_context,
+                            status=TranslationStatus.COMPLETED,
+                            translated_emotions=analysis_result.detected_emotions,
+                            confidence_score=analysis_result.confidence_score,
+                            processing_time_ms=analysis_result.processing_time_ms,
+                            response_options=analysis_result.response_options
+                        )
+                        
+                        session.add(translation)
+                        await session.commit()
+                        await session.refresh(translation)
+                        
+                        logger.info(f"Created emotion translation {translation.id} for user {user.id} with real Claude API")
+                        
+                    except Exception as e:
+                        logger.error(f"Claude API failed, using fallback: {e}")
+                        
+                        # Fallback to mock data if Claude API fails
                         from src.core.models.emotion import EmotionTranslation, TranslationStatus
                         
                         translation = EmotionTranslation(
@@ -901,11 +955,7 @@ async def handle_emotion_context_input(update, bot, user, user_context, message_
                         await session.commit()
                         await session.refresh(translation)
                         
-                        logger.info(f"Created emotion translation {translation.id} for user {user.id}")
-                        
-                    except Exception as e:
-                        logger.error(f"Failed to create emotion translation: {e}")
-                        raise
+                        logger.info(f"Created fallback emotion translation {translation.id} for user {user.id}")
             else:
                 # Create a mock translation for testing
                 from src.core.models.emotion import EmotionTranslation, TranslationStatus

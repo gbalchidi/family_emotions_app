@@ -358,7 +358,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     # Print startup info
-    print("🔧 Family Emotions Bot - BUILD v20250828-REMOVE-SESSION-FIX")
+    print("🔧 Family Emotions Bot - BUILD v20250828-CLAUDE-API-INTEGRATION")
     print("==================================================")
     print(f"Environment: {settings.environment}")
     print(f"Log Level: DEBUG")
