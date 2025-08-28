@@ -377,6 +377,27 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
             user_context = bot.get_user_context(update.effective_user.id)
             await handle_child_selection_for_translation(query, bot, user, user_context, child_id)
             
+        elif data == "edit_child":
+            await handle_edit_child_start(query, bot, user)
+            
+        elif data.startswith("edit_child_"):
+            # Handle specific child editing
+            child_id = data.split("_")[-1]
+            await handle_edit_specific_child(query, bot, user, child_id)
+            
+        elif data == "remove_child":
+            await handle_remove_child_start(query, bot, user)
+            
+        elif data.startswith("remove_child_"):
+            # Handle specific child removal confirmation
+            child_id = data.split("_")[-1]
+            await handle_remove_specific_child_confirm(query, bot, user, child_id)
+            
+        elif data.startswith("confirm_remove_"):
+            # Handle confirmed removal
+            child_id = data.split("_")[-1]
+            await handle_confirm_remove_child(query, bot, user, child_id)
+            
         else:
             # Handle unknown callback
             logger.warning(f"Unknown callback data: {data}")
@@ -1712,6 +1733,246 @@ async def handle_view_reports_week(query, bot, user, weeks_back):
         logger.error(f"Error in handle_view_reports_week: {e}")
         await query.edit_message_text(
             text="❌ Ошибка при генерации отчета",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_edit_child_start(query, bot, user):
+    """Handle start of editing a child profile."""
+    try:
+        if not user.children:
+            await query.edit_message_text(
+                text="👶 <b>Редактирование профиля ребенка</b>\n\nУ вас пока нет детей для редактирования.\n\nДобавьте ребенка сначала.",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            return
+        
+        # Show list of children to edit
+        text = "📝 <b>Редактировать профиль ребенка</b>\n\nВыберите ребенка, профиль которого хотите редактировать:"
+        
+        keyboard_buttons = []
+        for child in user.children:
+            keyboard_buttons.append([
+                InlineKeyboardButton(f"👶 {child.name} ({child.age} лет)", 
+                                   callback_data=f"edit_child_{child.id}")
+            ])
+        
+        keyboard_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="manage_children")])
+        keyboard = InlineKeyboardMarkup(keyboard_buttons)
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in handle_edit_child_start: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при выборе ребенка для редактирования",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_remove_child_start(query, bot, user):
+    """Handle start of removing a child profile."""
+    try:
+        if not user.children:
+            await query.edit_message_text(
+                text="👶 <b>Удалить профиль ребенка</b>\n\nУ вас пока нет детей для удаления.",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            return
+        
+        # Show list of children to remove
+        text = "🗑️ <b>Удалить профиль ребенка</b>\n\n⚠️ <b>Внимание:</b> Удаление профиля ребенка также удалит все связанные с ним анализы эмоций и отчеты.\n\nВыберите ребенка, профиль которого хотите удалить:"
+        
+        keyboard_buttons = []
+        for child in user.children:
+            keyboard_buttons.append([
+                InlineKeyboardButton(f"🗑️ {child.name} ({child.age} лет)", 
+                                   callback_data=f"remove_child_{child.id}")
+            ])
+        
+        keyboard_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="manage_children")])
+        keyboard = InlineKeyboardMarkup(keyboard_buttons)
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in handle_remove_child_start: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при выборе ребенка для удаления",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_edit_specific_child(query, bot, user, child_id):
+    """Handle editing a specific child's profile."""
+    try:
+        from uuid import UUID
+        child_uuid = UUID(child_id)
+        
+        # Find the child
+        child = None
+        for c in user.children:
+            if c.id == child_uuid:
+                child = c
+                break
+        
+        if not child:
+            await query.edit_message_text(
+                text="❌ Ребенок не найден",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            return
+        
+        # Show current profile and editing options
+        profile_text = await bot.format_child_profile(child)
+        
+        text = f"📝 <b>Редактирование профиля</b>\n\n{profile_text}\n\n<b>Что хотите изменить?</b>"
+        
+        keyboard_buttons = [
+            [InlineKeyboardButton("📝 Имя", callback_data=f"edit_name_{child_id}")],
+            [InlineKeyboardButton("🎂 Возраст", callback_data=f"edit_age_{child_id}")],
+            [InlineKeyboardButton("🌟 Характер", callback_data=f"edit_personality_{child_id}")],
+            [InlineKeyboardButton("🎨 Интересы", callback_data=f"edit_interests_{child_id}")],
+            [InlineKeyboardButton("🔍 Особые потребности", callback_data=f"edit_special_{child_id}")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="edit_child")]
+        ]
+        keyboard = InlineKeyboardMarkup(keyboard_buttons)
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in handle_edit_specific_child: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при загрузке профиля ребенка",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_remove_specific_child_confirm(query, bot, user, child_id):
+    """Show confirmation dialog for removing a specific child."""
+    try:
+        from uuid import UUID
+        child_uuid = UUID(child_id)
+        
+        # Find the child
+        child = None
+        for c in user.children:
+            if c.id == child_uuid:
+                child = c
+                break
+        
+        if not child:
+            await query.edit_message_text(
+                text="❌ Ребенок не найден",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            return
+        
+        text = f"⚠️ <b>Подтвердите удаление</b>\n\n"
+        text += f"Вы действительно хотите удалить профиль <b>{child.name}</b>?\n\n"
+        text += f"<b>Это действие:</b>\n"
+        text += f"• Удалит профиль ребенка навсегда\n"
+        text += f"• Удалит все анализы эмоций для {child.name}\n" 
+        text += f"• Удалит все отчеты для {child.name}\n\n"
+        text += f"<b>Восстановление будет невозможно!</b>"
+        
+        keyboard_buttons = [
+            [InlineKeyboardButton("❌ Да, удалить", callback_data=f"confirm_remove_{child_id}")],
+            [InlineKeyboardButton("✅ Нет, отменить", callback_data="remove_child")]
+        ]
+        keyboard = InlineKeyboardMarkup(keyboard_buttons)
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in handle_remove_specific_child_confirm: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при подготовке удаления",
+            reply_markup=InlineKeyboards.main_menu(),
+            parse_mode="HTML"
+        )
+
+
+async def handle_confirm_remove_child(query, bot, user, child_id):
+    """Actually remove the child from database."""
+    try:
+        from uuid import UUID
+        child_uuid = UUID(child_id)
+        
+        # Find the child
+        child = None
+        for c in user.children:
+            if c.id == child_uuid:
+                child = c
+                break
+        
+        if not child:
+            await query.edit_message_text(
+                text="❌ Ребенок не найден",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            return
+            
+        child_name = child.name  # Store name before deletion
+        
+        # Remove child from database
+        if bot and bot.db_manager:
+            async with bot.db_manager.get_session() as session:
+                from src.core.services import FamilyService
+                family_service = FamilyService(session)
+                
+                # This will also cascade delete all related emotion translations
+                await family_service.remove_child(child_uuid, user.id)
+                await session.commit()
+                
+                # Refresh user to get updated children list
+                await session.refresh(user)
+                
+            text = f"✅ <b>Профиль удален</b>\n\n"
+            text += f"Профиль <b>{child_name}</b> и все связанные данные успешно удалены.\n\n"
+            text += f"Что хотите сделать дальше?"
+            
+            await query.edit_message_text(
+                text=text,
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+        else:
+            await query.edit_message_text(
+                text="❌ Сервис недоступен для удаления",
+                reply_markup=InlineKeyboards.main_menu(),
+                parse_mode="HTML"
+            )
+        
+    except Exception as e:
+        logger.error(f"Error in handle_confirm_remove_child: {e}")
+        await query.edit_message_text(
+            text="❌ Ошибка при удалении профиля ребенка",
             reply_markup=InlineKeyboards.main_menu(),
             parse_mode="HTML"
         )

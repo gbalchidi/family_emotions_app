@@ -6,7 +6,7 @@ services:
     build:
       context: .
       no_cache: true
-    image: family_emotions_app:v20250827-emotion-display-fix
+    image: family_emotions_app:v20250827-edit-remove-child-fix
     container_name: family_emotions_app
     environment:
       - ENVIRONMENT=production
