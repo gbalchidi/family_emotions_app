@@ -107,7 +107,7 @@ class AnthropicSettings(BaseSettings):
     requests_per_day: int = Field(default=1000, description="API requests per day")
     
     # Proxy settings (optional)
-    proxy_url: Optional[str] = Field(default=None, description="HTTP/SOCKS proxy URL for Claude API")
+    proxy_url: Optional[str] = Field(default=None, alias="ANTHROPIC_PROXY_URL", description="HTTP/SOCKS proxy URL for Claude API")
     
     @field_validator("claude_api_key")
     @classmethod

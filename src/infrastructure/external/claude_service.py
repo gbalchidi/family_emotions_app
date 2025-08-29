@@ -43,6 +43,15 @@ class ClaudeService:
     """Service for interacting with Claude API for emotion analysis."""
     
     def __init__(self):
+        # Log all proxy-related settings for debugging
+        logger.info(f"Checking proxy configuration...")
+        logger.info(f"ANTHROPIC_PROXY_URL from settings: {settings.anthropic.proxy_url}")
+        
+        # Also check environment directly
+        import os
+        env_proxy = os.environ.get('ANTHROPIC_PROXY_URL')
+        logger.info(f"ANTHROPIC_PROXY_URL from environment: {env_proxy}")
+        
         # Check if proxy is configured
         if settings.anthropic.proxy_url:
             logger.info(f"Using proxy for Claude API: {settings.anthropic.proxy_url}")
