@@ -58,9 +58,11 @@ class ClaudeService:
             try:
                 # Create httpx client with proxy
                 # Note: For SOCKS proxy, httpx requires httpx[socks] installation
+                logger.info(f"Creating httpx client with proxy: {settings.anthropic.proxy_url}")
                 http_client = httpx.AsyncClient(
                     proxy=settings.anthropic.proxy_url,
-                    timeout=httpx.Timeout(30.0)  # 30 second timeout
+                    timeout=httpx.Timeout(30.0),  # 30 second timeout
+                    verify=False  # Disable SSL verification for proxy (be careful in production!)
                 )
                 self._client = AsyncAnthropic(
                     api_key=settings.anthropic.api_key,
@@ -147,8 +149,18 @@ class ClaudeService:
                     status_code=e.response.status_code
                 )
         
+        except httpx.ConnectError as e:
+            logger.error(f"Claude API connection error: {e}")
+            logger.error(f"Proxy might be unreachable or not working correctly")
+            raise ExternalServiceError(
+                f"Connection error - proxy might be down: {str(e)}",
+                service_name="Claude"
+            )
+        
         except Exception as e:
-            logger.error(f"Claude API error: {e}")
+            logger.error(f"Claude API error: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             raise ExternalServiceError(
                 f"Unexpected Claude API error: {str(e)}",
                 service_name="Claude"
