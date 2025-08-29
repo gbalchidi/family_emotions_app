@@ -6,7 +6,7 @@ services:
     build:
       context: .
       no_cache: true
-    image: family_emotions_app:v20250829-proxy-fix
+    image: family_emotions_app:v20250829-host-network-fix
     container_name: family_emotions_app
     environment:
       - ENVIRONMENT=production
@@ -21,6 +21,9 @@ services:
       - ./logs:/app/logs
     networks:
       - family_emotions_net
+    # Enable container to access host services (like proxy)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   # PostgreSQL database

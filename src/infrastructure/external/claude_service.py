@@ -54,24 +54,69 @@ class ClaudeService:
         
         # Check if proxy is configured
         if settings.anthropic.proxy_url:
-            logger.info(f"Using proxy for Claude API: {settings.anthropic.proxy_url}")
-            try:
-                # Create httpx client with proxy
-                # Note: For SOCKS proxy, httpx requires httpx[socks] installation
-                logger.info(f"Creating httpx client with proxy: {settings.anthropic.proxy_url}")
-                http_client = httpx.AsyncClient(
-                    proxy=settings.anthropic.proxy_url,
-                    timeout=httpx.Timeout(30.0),  # 30 second timeout
-                    verify=False  # Disable SSL verification for proxy (be careful in production!)
-                )
-                self._client = AsyncAnthropic(
-                    api_key=settings.anthropic.api_key,
-                    http_client=http_client
-                )
-                logger.info("Proxy configured successfully")
-            except Exception as e:
-                logger.error(f"Failed to configure proxy: {e}")
-                logger.warning("Falling back to direct connection")
+            # Convert localhost proxy URLs for Docker container access
+            proxy_url = settings.anthropic.proxy_url
+            if proxy_url.startswith('socks5://127.0.0.1') or proxy_url.startswith('http://127.0.0.1'):
+                # Try different approaches for container-to-host access
+                # First try host.docker.internal (works on Docker Desktop)
+                proxy_url_host_internal = proxy_url.replace('127.0.0.1', 'host.docker.internal')
+                
+                # Also try getting the actual host IP from Docker gateway
+                try:
+                    import subprocess
+                    result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        # Extract gateway IP
+                        gateway_ip = result.stdout.split()[2] if len(result.stdout.split()) > 2 else None
+                        if gateway_ip:
+                            proxy_url_gateway = proxy_url.replace('127.0.0.1', gateway_ip)
+                            logger.info(f"Found Docker gateway IP: {gateway_ip}")
+                            proxy_url = proxy_url_gateway
+                        else:
+                            proxy_url = proxy_url_host_internal
+                    else:
+                        proxy_url = proxy_url_host_internal
+                except Exception:
+                    proxy_url = proxy_url_host_internal
+                
+                logger.info(f"Converted proxy URL for Docker: {settings.anthropic.proxy_url} -> {proxy_url}")
+            
+            logger.info(f"Using proxy for Claude API: {proxy_url}")
+            
+            # Try multiple proxy configurations if the first fails
+            proxy_urls_to_try = [proxy_url]
+            if proxy_url != settings.anthropic.proxy_url:
+                # If we converted the URL, also try the original as fallback
+                proxy_urls_to_try.append(settings.anthropic.proxy_url)
+            
+            # Also try host.docker.internal explicitly if not already tried
+            if 'host.docker.internal' not in proxy_url:
+                host_internal_url = settings.anthropic.proxy_url.replace('127.0.0.1', 'host.docker.internal')
+                if host_internal_url not in proxy_urls_to_try:
+                    proxy_urls_to_try.append(host_internal_url)
+            
+            proxy_configured = False
+            for try_proxy_url in proxy_urls_to_try:
+                try:
+                    logger.info(f"Trying proxy configuration: {try_proxy_url}")
+                    http_client = httpx.AsyncClient(
+                        proxy=try_proxy_url,
+                        timeout=httpx.Timeout(30.0),
+                        verify=False
+                    )
+                    self._client = AsyncAnthropic(
+                        api_key=settings.anthropic.api_key,
+                        http_client=http_client
+                    )
+                    logger.info(f"Proxy configured successfully with: {try_proxy_url}")
+                    proxy_configured = True
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed proxy configuration {try_proxy_url}: {e}")
+            
+            if not proxy_configured:
+                logger.error("All proxy configurations failed, falling back to direct connection")
                 self._client = AsyncAnthropic(api_key=settings.anthropic.api_key)
         else:
             logger.info("No proxy configured for Claude API")
