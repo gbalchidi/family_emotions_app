@@ -43,7 +43,24 @@ class ClaudeService:
     """Service for interacting with Claude API for emotion analysis."""
     
     def __init__(self):
-        self._client = AsyncAnthropic(api_key=settings.anthropic.api_key)
+        # Check if proxy is configured
+        if settings.anthropic.proxy_url:
+            logger.info(f"Using proxy for Claude API: {settings.anthropic.proxy_url}")
+            # Create httpx client with proxy
+            http_client = httpx.AsyncClient(
+                proxies={
+                    "http://": settings.anthropic.proxy_url,
+                    "https://": settings.anthropic.proxy_url
+                }
+            )
+            self._client = AsyncAnthropic(
+                api_key=settings.anthropic.api_key,
+                http_client=http_client
+            )
+        else:
+            logger.info("No proxy configured for Claude API")
+            self._client = AsyncAnthropic(api_key=settings.anthropic.api_key)
+            
         self._rate_limiter = RateLimiter(
             requests_per_minute=settings.anthropic.requests_per_minute,
             requests_per_day=settings.anthropic.requests_per_day

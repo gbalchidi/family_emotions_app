@@ -106,6 +106,9 @@ class AnthropicSettings(BaseSettings):
     requests_per_minute: int = Field(default=50, description="API requests per minute")
     requests_per_day: int = Field(default=1000, description="API requests per day")
     
+    # Proxy settings (optional)
+    proxy_url: Optional[str] = Field(default=None, description="HTTP/SOCKS proxy URL for Claude API")
+    
     @field_validator("claude_api_key")
     @classmethod
     def validate_api_key(cls, v: str) -> str:
