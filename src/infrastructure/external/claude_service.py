@@ -61,7 +61,7 @@ class ClaudeService:
                 # First try host.docker.internal (works on Docker Desktop)
                 proxy_url_host_internal = proxy_url.replace('127.0.0.1', 'host.docker.internal')
                 
-                # Also try getting the actual host IP from Docker gateway
+                # Also try getting the actual host IP from Docker gateway  
                 try:
                     import subprocess
                     result = subprocess.run(['ip', 'route', 'show', 'default'], 
@@ -74,10 +74,13 @@ class ClaudeService:
                             logger.info(f"Found Docker gateway IP: {gateway_ip}")
                             proxy_url = proxy_url_gateway
                         else:
+                            logger.info("No gateway IP found, using host.docker.internal")
                             proxy_url = proxy_url_host_internal
                     else:
+                        logger.info("Cannot get route info, using host.docker.internal")
                         proxy_url = proxy_url_host_internal
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Failed to get gateway IP: {e}, using host.docker.internal")
                     proxy_url = proxy_url_host_internal
                 
                 logger.info(f"Converted proxy URL for Docker: {settings.anthropic.proxy_url} -> {proxy_url}")
@@ -95,6 +98,13 @@ class ClaudeService:
                 host_internal_url = settings.anthropic.proxy_url.replace('127.0.0.1', 'host.docker.internal')
                 if host_internal_url not in proxy_urls_to_try:
                     proxy_urls_to_try.append(host_internal_url)
+            
+            # Try common Docker host IPs for different environments
+            common_host_ips = ['172.17.0.1', '172.18.0.1', '192.168.65.2']  # Common Docker gateway IPs
+            for host_ip in common_host_ips:
+                host_ip_url = settings.anthropic.proxy_url.replace('127.0.0.1', host_ip)
+                if host_ip_url not in proxy_urls_to_try:
+                    proxy_urls_to_try.append(host_ip_url)
             
             proxy_configured = False
             for try_proxy_url in proxy_urls_to_try:
