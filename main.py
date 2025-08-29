@@ -358,7 +358,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     # Print startup info
-    print("🔧 Family Emotions Bot - BUILD v20250829-PROXY-DEBUG")
+    print("🔧 Family Emotions Bot - BUILD v20250829-PROXY-FIX")
     print("==================================================")
     print(f"Environment: {settings.environment}")
     print(f"Log Level: DEBUG")

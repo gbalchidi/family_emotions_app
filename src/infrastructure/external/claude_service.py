@@ -55,17 +55,22 @@ class ClaudeService:
         # Check if proxy is configured
         if settings.anthropic.proxy_url:
             logger.info(f"Using proxy for Claude API: {settings.anthropic.proxy_url}")
-            # Create httpx client with proxy
-            http_client = httpx.AsyncClient(
-                proxies={
-                    "http://": settings.anthropic.proxy_url,
-                    "https://": settings.anthropic.proxy_url
-                }
-            )
-            self._client = AsyncAnthropic(
-                api_key=settings.anthropic.api_key,
-                http_client=http_client
-            )
+            try:
+                # Create httpx client with proxy
+                # Note: For SOCKS proxy, httpx requires httpx[socks] installation
+                http_client = httpx.AsyncClient(
+                    proxy=settings.anthropic.proxy_url,
+                    timeout=httpx.Timeout(30.0)  # 30 second timeout
+                )
+                self._client = AsyncAnthropic(
+                    api_key=settings.anthropic.api_key,
+                    http_client=http_client
+                )
+                logger.info("Proxy configured successfully")
+            except Exception as e:
+                logger.error(f"Failed to configure proxy: {e}")
+                logger.warning("Falling back to direct connection")
+                self._client = AsyncAnthropic(api_key=settings.anthropic.api_key)
         else:
             logger.info("No proxy configured for Claude API")
             self._client = AsyncAnthropic(api_key=settings.anthropic.api_key)

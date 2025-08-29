@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    CACHE_BUST=v20250829-proxy-debug
+    CACHE_BUST=v20250829-proxy-fix
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -43,7 +43,7 @@ RUN pip install psycopg2-binary asyncpg && \
     pip install sentry-sdk[fastapi] && \
     pip install prometheus-client && \
     pip install python-jose[cryptography] && \
-    pip install httpx && \
+    pip install httpx httpx[socks] && \
     pip install python-multipart && \
     pip install psutil && \
     pip install python-json-logger
