@@ -108,6 +108,7 @@ class AnthropicSettings(BaseSettings):
     
     # Proxy settings (optional)
     proxy_url: Optional[str] = Field(default=None, alias="ANTHROPIC_PROXY_URL", description="HTTP/SOCKS proxy URL for Claude API")
+    proxy_host_ip: Optional[str] = Field(default=None, alias="PROXY_HOST_IP", description="Explicit host IP where proxy is running (for Docker)")
     
     @field_validator("claude_api_key")
     @classmethod

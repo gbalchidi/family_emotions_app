@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Main application with host network mode
+  app:
+    build:
+      context: .
+      no_cache: true
+    image: family_emotions_app:v20250829-host-network
+    container_name: family_emotions_app
+    environment:
+      - ENVIRONMENT=production
+      - DB_HOST=localhost  # Using localhost since we're in host network mode
+      - REDIS_HOST=localhost  # Using localhost since we're in host network mode
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    # Use host network mode - container shares network with host
+    network_mode: "host"
+    restart: unless-stopped
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: family_emotions_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-family_emotions}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    network_mode: "host"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: family_emotions_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-} --port 6379
+    volumes:
+      - redis_data:/data
+    network_mode: "host"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

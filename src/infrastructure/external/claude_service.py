@@ -56,7 +56,13 @@ class ClaudeService:
         if settings.anthropic.proxy_url:
             # Convert localhost proxy URLs for Docker container access
             proxy_url = settings.anthropic.proxy_url
-            if proxy_url.startswith('socks5://127.0.0.1') or proxy_url.startswith('http://127.0.0.1'):
+            
+            # If explicit host IP is provided, use it directly
+            if settings.anthropic.proxy_host_ip:
+                proxy_url = proxy_url.replace('127.0.0.1', settings.anthropic.proxy_host_ip)
+                logger.info(f"Using explicit proxy host IP: {settings.anthropic.proxy_host_ip}")
+                logger.info(f"Final proxy URL: {proxy_url}")
+            elif proxy_url.startswith('socks5://127.0.0.1') or proxy_url.startswith('http://127.0.0.1'):
                 # Try different approaches for container-to-host access
                 # First try host.docker.internal (works on Docker Desktop)
                 proxy_url_host_internal = proxy_url.replace('127.0.0.1', 'host.docker.internal')
