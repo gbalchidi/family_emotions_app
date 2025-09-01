@@ -61,26 +61,58 @@ class ClaudeService:
                 # First try host.docker.internal (works on Docker Desktop)
                 proxy_url_host_internal = proxy_url.replace('127.0.0.1', 'host.docker.internal')
                 
-                # Also try getting the actual host IP from Docker gateway  
+                # Try multiple methods to get the actual host IP from Docker gateway  
+                gateway_ip = None
+                
+                # Method 1: Use ip route command
                 try:
                     import subprocess
                     result = subprocess.run(['ip', 'route', 'show', 'default'], 
                                           capture_output=True, text=True, timeout=5)
                     if result.returncode == 0:
                         # Extract gateway IP
-                        gateway_ip = result.stdout.split()[2] if len(result.stdout.split()) > 2 else None
-                        if gateway_ip:
-                            proxy_url_gateway = proxy_url.replace('127.0.0.1', gateway_ip)
-                            logger.info(f"Found Docker gateway IP: {gateway_ip}")
-                            proxy_url = proxy_url_gateway
-                        else:
-                            logger.info("No gateway IP found, using host.docker.internal")
-                            proxy_url = proxy_url_host_internal
-                    else:
-                        logger.info("Cannot get route info, using host.docker.internal")
-                        proxy_url = proxy_url_host_internal
+                        parts = result.stdout.split()
+                        if len(parts) > 2 and parts[0] == 'default':
+                            gateway_ip = parts[2]
+                            logger.info(f"Found Docker gateway IP via ip route: {gateway_ip}")
                 except Exception as e:
-                    logger.warning(f"Failed to get gateway IP: {e}, using host.docker.internal")
+                    logger.warning(f"Method 1 (ip route) failed: {e}")
+                
+                # Method 2: Read /proc/net/route if ip command failed
+                if not gateway_ip:
+                    try:
+                        with open('/proc/net/route', 'r') as f:
+                            for line in f:
+                                fields = line.strip().split()
+                                if len(fields) >= 3 and fields[1] == '00000000':  # Default route
+                                    # Convert hex gateway to IP
+                                    gateway_hex = fields[2]
+                                    if len(gateway_hex) == 8:
+                                        ip_parts = []
+                                        for i in range(0, 8, 2):
+                                            ip_parts.append(str(int(gateway_hex[i:i+2], 16)))
+                                        gateway_ip = '.'.join(reversed(ip_parts))
+                                        logger.info(f"Found Docker gateway IP via /proc/net/route: {gateway_ip}")
+                                        break
+                    except Exception as e:
+                        logger.warning(f"Method 2 (/proc/net/route) failed: {e}")
+                
+                # Method 3: Try to resolve host.docker.internal first
+                if not gateway_ip:
+                    try:
+                        import socket
+                        gateway_ip = socket.gethostbyname('host.docker.internal')
+                        logger.info(f"Resolved host.docker.internal to: {gateway_ip}")
+                    except Exception as e:
+                        logger.warning(f"Method 3 (host.docker.internal resolution) failed: {e}")
+                
+                # Use found gateway IP or fallback
+                if gateway_ip and gateway_ip != '127.0.0.1':
+                    proxy_url_gateway = proxy_url.replace('127.0.0.1', gateway_ip)
+                    proxy_url = proxy_url_gateway
+                    logger.info(f"Using gateway IP for proxy: {gateway_ip}")
+                else:
+                    logger.info("No valid gateway IP found, using host.docker.internal")
                     proxy_url = proxy_url_host_internal
                 
                 logger.info(f"Converted proxy URL for Docker: {settings.anthropic.proxy_url} -> {proxy_url}")

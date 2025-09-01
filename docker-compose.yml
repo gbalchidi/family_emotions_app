@@ -6,7 +6,7 @@ services:
     build:
       context: .
       no_cache: true
-    image: family_emotions_app:v20250829-gateway-ip-fix
+    image: family_emotions_app:v20250829-iproute-fix
     container_name: family_emotions_app
     environment:
       - ENVIRONMENT=production
